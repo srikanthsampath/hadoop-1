@@ -1798,7 +1798,7 @@ public class TestRecovery {
     TaskSplitMetaInfo taskSplitMetaInfo = mock(TaskSplitMetaInfo.class);
     MapTaskImpl mapTask = new MapTaskImpl(jobId, partitions,
         eh, remoteJobConfFile, conf,
-        taskSplitMetaInfo, taskAttemptListener, jobToken, credentials, clock,
+        taskSplitMetaInfo, taskAttemptListener, null, jobToken, credentials, clock,
         appAttemptId, metrics, appContext);
     return mapTask;
   }

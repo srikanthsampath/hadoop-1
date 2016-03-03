@@ -85,14 +85,19 @@ public class AppSchedulingInfo {
 
   public AppSchedulingInfo(ApplicationAttemptId appAttemptId,
       String user, Queue queue, ActiveUsersManager activeUsersManager,
-      long epoch, ResourceUsage appResourceUsage) {
+      long epoch, ResourceUsage appResourceUsage, long containerId) {
     this.applicationAttemptId = appAttemptId;
     this.applicationId = appAttemptId.getApplicationId();
     this.queue = queue;
     this.user = user;
     this.activeUsersManager = activeUsersManager;
-    this.containerIdCounter = new AtomicLong(epoch << EPOCH_BIT_SHIFT);
     this.appResourceUsage = appResourceUsage;
+    if (containerId > 0) {
+      this.containerIdCounter = new AtomicLong(containerId);
+    } else {
+      this.containerIdCounter = new AtomicLong(epoch << EPOCH_BIT_SHIFT);
+    }
+    LOG.info("SS_DEBUG:ApplicationId: " + applicationId + " ApplicationAttemptId: " + appAttemptId + " ContainerId initialized:" + containerIdCounter);
   }
 
   public ApplicationId getApplicationId() {
@@ -108,7 +113,13 @@ public class AppSchedulingInfo {
   }
 
   public long getNewContainerId() {
-    return this.containerIdCounter.incrementAndGet();
+    long id =  this.containerIdCounter.incrementAndGet();
+    LOG.info("SS_DEBUG:ApplicationId:" + applicationId + " AttemptId: " + applicationAttemptId +  " ContainerId incremented:" + id);
+    return id;
+  }
+
+  public long getLastContainerId() {
+    return this.containerIdCounter.get();
   }
 
   public synchronized String getQueueName() {

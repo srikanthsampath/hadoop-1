@@ -26,5 +26,4 @@ public class WrappedJvmID extends JVMId {
   public WrappedJvmID(JobID jobID, boolean mapTask, long nextLong) {
     super(jobID, mapTask, nextLong);
   }
-
 }

@@ -60,6 +60,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.authorize.AccessControlList;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.webapp.WebApp;
+import org.apache.hadoop.registry.client.types.ServiceRecord;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -408,6 +409,16 @@ public class TestHsWebServicesAcls {
     @Override
     public List<AMInfo> getAMInfos() {
       return mockJob.getAMInfos();
+    }
+
+    @Override
+    public String getServiceRegistryPath() {
+      return null;
+    }
+
+    @Override
+    public ServiceRecord getServiceRecord() {
+      return null;
     }
 
     @Override

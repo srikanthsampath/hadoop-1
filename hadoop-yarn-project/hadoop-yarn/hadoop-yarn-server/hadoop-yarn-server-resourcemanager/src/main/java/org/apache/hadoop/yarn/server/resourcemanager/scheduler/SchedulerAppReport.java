@@ -35,11 +35,13 @@ public class SchedulerAppReport {
   private final Collection<RMContainer> live;
   private final Collection<RMContainer> reserved;
   private final boolean pending;
+  private final long lastContainerId;
   
   public SchedulerAppReport(SchedulerApplicationAttempt app) {
     this.live = app.getLiveContainers();
     this.reserved = app.getReservedContainers();
     this.pending = app.isPending();
+    this.lastContainerId = app.getLastContainerId();
   }
   
   /**
@@ -65,4 +67,6 @@ public class SchedulerAppReport {
   public boolean isPending() {
     return pending;
   }
+
+  public long getLastContainerId() { return lastContainerId; }
 }

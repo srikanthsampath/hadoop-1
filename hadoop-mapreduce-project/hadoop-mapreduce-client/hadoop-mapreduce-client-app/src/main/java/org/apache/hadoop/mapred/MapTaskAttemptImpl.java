@@ -41,11 +41,12 @@ public class MapTaskAttemptImpl extends TaskAttemptImpl {
       EventHandler eventHandler, Path jobFile, 
       int partition, TaskSplitMetaInfo splitInfo, JobConf conf,
       TaskAttemptListener taskAttemptListener, 
+      String registryPath,
       Token<JobTokenIdentifier> jobToken,
       Credentials credentials, Clock clock,
       AppContext appContext) {
     super(taskId, attempt, eventHandler, 
-        taskAttemptListener, jobFile, partition, conf, splitInfo.getLocations(),
+        taskAttemptListener, registryPath, jobFile, partition, conf, splitInfo.getLocations(),
         jobToken, credentials, clock, appContext);
     this.splitInfo = splitInfo;
   }

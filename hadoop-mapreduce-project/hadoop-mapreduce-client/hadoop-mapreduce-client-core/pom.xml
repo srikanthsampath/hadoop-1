@@ -42,6 +42,10 @@
       <artifactId>hadoop-hdfs</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-yarn-registry</artifactId>
+    </dependency>
   </dependencies>
 
   <build>

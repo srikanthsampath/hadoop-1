@@ -108,9 +108,21 @@ public class TestTaskImpl {
         MRAppMetrics metrics, AppContext appContext, TaskType taskType) {
       super(jobId, taskType , partition, eventHandler,
           remoteJobConfFile, conf, taskAttemptListener,
-          jobToken, credentials, clock,
+          null, jobToken, credentials, clock,
           startCount, metrics, appContext);
       this.taskType = taskType;
+    }
+
+    @Override
+    protected TaskAttemptImpl createAttempt(TaskAttemptId attemptId) {
+      TaskId taskId = attemptId.getTaskId();
+      int attempt = attemptId.getId();
+
+      MockTaskAttemptImpl attemptImpl =  new MockTaskAttemptImpl(taskId, attempt,
+          eventHandler, taskAttemptListener, remoteJobConfFile, partition,
+          conf, jobToken, credentials, clock, appContext, taskType);
+      taskAttempts.add(attemptImpl);
+      return attemptImpl;
     }
 
     @Override
@@ -153,7 +165,7 @@ public class TestTaskImpl {
         JobConf conf, Token<JobTokenIdentifier> jobToken,
         Credentials credentials, Clock clock,
         AppContext appContext, TaskType taskType) {
-      super(taskId, id, eventHandler, taskAttemptListener, jobFile, partition, conf,
+      super(taskId, id, eventHandler, taskAttemptListener, null, jobFile, partition, conf,
           dataLocations, jobToken, credentials, clock, appContext);
       this.taskType = taskType;
     }

@@ -40,6 +40,7 @@ import org.apache.hadoop.mapreduce.Counters;
 import org.apache.hadoop.mapreduce.MRConfig;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.TypeConverter;
+import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.jobhistory.JobHistoryEvent;
 import org.apache.hadoop.mapreduce.jobhistory.JobHistoryParser.TaskAttemptInfo;
 import org.apache.hadoop.mapreduce.jobhistory.JobHistoryParser.TaskInfo;
@@ -72,9 +73,11 @@ import org.apache.hadoop.mapreduce.v2.app.job.event.TaskAttemptEvent;
 import org.apache.hadoop.mapreduce.v2.app.job.event.TaskAttemptKillEvent;
 import org.apache.hadoop.mapreduce.v2.app.job.event.TaskAttemptEventType;
 import org.apache.hadoop.mapreduce.v2.app.job.event.TaskAttemptRecoverEvent;
+import org.apache.hadoop.mapreduce.v2.app.job.event.TaskAttemptRecoverInflightEvent;
 import org.apache.hadoop.mapreduce.v2.app.job.event.TaskEvent;
 import org.apache.hadoop.mapreduce.v2.app.job.event.TaskEventType;
 import org.apache.hadoop.mapreduce.v2.app.job.event.TaskRecoverEvent;
+import org.apache.hadoop.mapreduce.v2.app.job.event.TaskRecoverInflightEvent;
 import org.apache.hadoop.mapreduce.v2.app.job.event.TaskTAttemptEvent;
 import org.apache.hadoop.mapreduce.v2.app.metrics.MRAppMetrics;
 import org.apache.hadoop.mapreduce.v2.app.rm.ContainerFailedEvent;
@@ -107,6 +110,7 @@ public abstract class TaskImpl implements Task, EventHandler<TaskEvent> {
   protected final Path jobFile;
   protected final int partition;
   protected final TaskAttemptListener taskAttemptListener;
+  protected String registryEntry;
   protected final EventHandler eventHandler;
   private final TaskId taskId;
   private Map<TaskAttemptId, TaskAttempt> attempts;
@@ -163,6 +167,9 @@ public abstract class TaskImpl implements Task, EventHandler<TaskEvent> {
                    TaskStateInternal.RUNNING,
                    TaskStateInternal.SUCCEEDED),
         TaskEventType.T_RECOVER, new RecoverTransition())
+    .addTransition(TaskStateInternal.NEW,
+                   TaskStateInternal.RUNNING,
+        TaskEventType.T_RECOVER_INFLIGHT, new RecoverInflightTransition())
 
     // Transitions from SCHEDULED state
       //when the first attempt is launched, the task state is set to RUNNING
@@ -293,6 +300,7 @@ public abstract class TaskImpl implements Task, EventHandler<TaskEvent> {
   public TaskImpl(JobId jobId, TaskType taskType, int partition,
       EventHandler eventHandler, Path remoteJobConfFile, JobConf conf,
       TaskAttemptListener taskAttemptListener,
+      String registryPath,
       Token<JobTokenIdentifier> jobToken,
       Credentials credentials, Clock clock,
       int appAttemptId, MRAppMetrics metrics, AppContext appContext) {
@@ -313,6 +321,7 @@ public abstract class TaskImpl implements Task, EventHandler<TaskEvent> {
     taskId = MRBuilderUtils.newTaskId(jobId, partition, taskType);
     this.partition = partition;
     this.taskAttemptListener = taskAttemptListener;
+    this.registryEntry = registryPath;
     this.eventHandler = eventHandler;
     this.credentials = credentials;
     this.jobToken = jobToken;
@@ -577,6 +586,9 @@ public abstract class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   protected abstract TaskAttemptImpl createAttempt();
 
+  protected abstract TaskAttemptImpl createAttempt(TaskAttemptId attemptId);
+
+
   // No override of this method may require that the subclass be initialized.
   protected abstract int getMaxAttempts();
 
@@ -612,6 +624,13 @@ public abstract class TaskImpl implements Task, EventHandler<TaskEvent> {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Created attempt " + attempt.getID());
     }
+
+    addAttemptToAttempts(attempt);
+
+    return attempt;
+  }
+
+  private void addAttemptToAttempts(TaskAttemptImpl attempt) {
     switch (attempts.size()) {
       case 0:
         attempts = Collections.singletonMap(attempt.getID(),
@@ -632,6 +651,17 @@ public abstract class TaskImpl implements Task, EventHandler<TaskEvent> {
     }
 
     ++nextAttemptNumber;
+  }
+
+  private TaskAttemptImpl addAttempt(Avataar avataar, TaskAttemptId attemptId) {
+    TaskAttemptImpl attempt = createAttempt(attemptId);
+    attempt.setAvataar(avataar);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Created attempt " + attempt.getID());
+    }
+
+    addAttemptToAttempts(attempt);
+
     return attempt;
   }
 
@@ -763,6 +793,51 @@ public abstract class TaskImpl implements Task, EventHandler<TaskEvent> {
 	  return "";
   }
 
+
+  private void recoverInflight(TaskInfo taskInfo,
+      OutputCommitter committer, boolean recoverTaskOutput) {
+    // SS_DEBUG: To implement
+
+    LOG.info("SS_DEBUG: Recovering inflight task " + taskInfo.getTaskId()
+        + " from prior app attempt, status was " + taskInfo.getTaskStatus());
+
+    // Figure out what to do.
+    // Have to consider multiple attempts
+    // Recovering completed tasks include sending of events - such as start and such
+    //
+    ArrayList<TaskAttemptInfo> taInfos =
+        new ArrayList<TaskAttemptInfo>(taskInfo.getAllTaskAttempts().values());
+    Collections.sort(taInfos, TA_INFO_COMPARATOR);
+
+    TaskAttemptInfo taLast = taInfos.get(taInfos.size() -1);
+
+//    TaskAttemptImpl attempt = addAttempt(Avataar.VIRGIN);
+    TaskAttemptId attemptId = getTaskAttemptId(taskInfo);
+    TaskAttemptImpl attempt = addAttempt(Avataar.VIRGIN, attemptId);
+    // handle the recovery inline so attempts complete before task does
+    attempt.handle(new TaskAttemptRecoverInflightEvent(attempt.getID(), taLast,
+          committer, recoverTaskOutput));
+
+    TaskStateInternal taskState = TaskStateInternal.RUNNING;
+    return;
+  }
+
+  private TaskAttemptId getTaskAttemptId(TaskInfo taskInfo) {
+    TaskAttemptId attemptId = null;
+    Map<TaskAttemptID, TaskAttemptInfo> attemptsMap = taskInfo.getAllTaskAttempts();
+    //SS_DEBUG: Weak... strengthen this
+    for (TaskAttemptInfo attemptInfo : attemptsMap.values()) {
+         if ((attemptInfo.getStartTime() != -1) && (attemptInfo.getFinishTime() == -1) &&
+                                  (attemptInfo.getContainerId() != null)) {
+           attemptId = TypeConverter.toYarn(attemptInfo.getAttemptId());
+           break;
+      }
+    }
+    return (attemptId);
+  }
+
+
+
   /**
    * Recover a completed task from a previous application attempt
    * @param taskInfo recovered info about the task
@@ -878,6 +953,19 @@ public abstract class TaskImpl implements Task, EventHandler<TaskEvent> {
           tre.getRecoverTaskOutput());
     }
   }
+
+  private static class RecoverInflightTransition
+    implements SingleArcTransition<TaskImpl, TaskEvent> {
+
+    @Override
+    public void transition(TaskImpl task, TaskEvent event) {
+      TaskRecoverInflightEvent trie = (TaskRecoverInflightEvent) event;
+      task.recoverInflight(trie.getTaskInfo(), trie.getOutputCommitter(),
+          trie.getRecoverTaskOutput());
+    }
+  }
+
+
 
   private static class InitialScheduleTransition
     implements SingleArcTransition<TaskImpl, TaskEvent> {

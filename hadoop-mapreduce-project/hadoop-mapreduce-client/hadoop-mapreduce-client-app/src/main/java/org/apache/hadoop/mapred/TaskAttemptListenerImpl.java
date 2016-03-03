@@ -154,6 +154,7 @@ public class TaskAttemptListenerImpl extends CompositeService
       this.address = NetUtils.createSocketAddrForHost(
           context.getNMHostname(),
           server.getListenerAddress().getPort());
+      LOG.info("SS_DEBUG: RPC Server: Host: " + context.getNMHostname() + " Port: " + server.getListenerAddress().getPort());
     } catch (IOException e) {
       throw new YarnRuntimeException(e);
     }
@@ -466,6 +467,8 @@ public class TaskAttemptListenerImpl extends CompositeService
 
     JVMId jvmId = context.jvmId;
     LOG.info("JVM with ID : " + jvmId + " asked for a task");
+    LOG.info("SS_DEBUG:GetTask:JVMID:" + jvmId);
+
 
     JvmTask jvmTask = null;
     // TODO: Is it an authorized container to get a task? Otherwise return null.
@@ -480,6 +483,8 @@ public class TaskAttemptListenerImpl extends CompositeService
     // multiple tasks to a JVM
     if (!jvmIDToActiveAttemptMap.containsKey(wJvmID)) {
       LOG.info("JVM with ID: " + jvmId + " is invalid and will be killed.");
+      LOG.info("SS_DEBUG:getTask:Remove jvmIDtoTaskMap:" + jvmId);
+      LOG.info("SS_DEBUG:getTask:Remove LaunchedJVMs:" + jvmId);
       jvmTask = TASK_FOR_INVALID_JVM;
     } else {
       if (!launchedJVMs.contains(wJvmID)) {
@@ -508,6 +513,7 @@ public class TaskAttemptListenerImpl extends CompositeService
     // when the jvm comes back to ask for Task.
 
     // A JVM not present in this map is an illegal task/JVM.
+    LOG.info("SS_DEBUG:RegisterPendingTask:Add to JVMIDtoTaskMap:" + jvmID);
     jvmIDToActiveAttemptMap.put(jvmID, task);
   }
 
@@ -517,6 +523,8 @@ public class TaskAttemptListenerImpl extends CompositeService
       WrappedJvmID jvmId) {
     // The AM considers the task to be launched (Has asked the NM to launch it)
     // The JVM will only be given a task after this registartion.
+    LOG.info("SS_DEBUG:RegisterLaunchedTask:" + " Register JVMID: " + jvmId + " attemptId: " + attemptID);
+    LOG.info("SS_DEBUG:Adding to LaunchedJVMs:" + jvmId);
     launchedJVMs.add(jvmId);
 
     taskHeartbeatHandler.register(attemptID);
@@ -538,6 +546,11 @@ public class TaskAttemptListenerImpl extends CompositeService
     // remove the mappings if not already removed
     launchedJVMs.remove(jvmID);
     jvmIDToActiveAttemptMap.remove(jvmID);
+    boolean setReturn = launchedJVMs.remove(jvmID);
+    org.apache.hadoop.mapred.Task task = jvmIDToActiveAttemptMap.remove(jvmID);
+    LOG.info("SS_DEBUG: " + " Unregister JVMID: " + jvmID + " attemptId: " + attemptID);
+    LOG.info("SS_DEBUG:Unregister:" + "Removing from launchedJVM: setReturn:" + setReturn);
+    LOG.info("SS_DEBUG:Unregister:" + "Removing from jvmIDtoTask: Task:" + task);
 
     //unregister this attempt
     taskHeartbeatHandler.unregister(attemptID);

@@ -201,6 +201,21 @@ public class RegistryTypeUtils {
     return results;
   }
 
+  public static Map<String, String> retrieveAddressIpcType(Endpoint epr)
+      throws InvalidRecordException {
+    if (epr == null) {
+      return null;
+    }
+    requireAddressType(ADDRESS_HOSTNAME_AND_PORT, epr);
+    List<Map<String, String>> addresses = epr.addresses;
+    if (addresses.size() < 1) {
+      throw new InvalidRecordException(epr.toString(),
+          "No addresses in endpoint");
+    }
+
+    return addresses.get(0);
+  }
+
   /**
    * Get a specific field from an address -raising an exception if
    * the field is not present

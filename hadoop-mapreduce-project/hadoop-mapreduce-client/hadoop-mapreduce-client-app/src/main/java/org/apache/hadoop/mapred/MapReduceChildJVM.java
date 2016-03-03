@@ -104,7 +104,7 @@ public class MapReduceChildJVM {
   }
 
   public static List<String> getVMCommand(
-      InetSocketAddress taskAttemptListenerAddr, Task task, 
+      InetSocketAddress taskAttemptListenerAddr, String registryPath, Task task, 
       JVMId jvmID) {
 
     TaskAttemptID attemptID = task.getTaskID();
@@ -168,6 +168,8 @@ public class MapReduceChildJVM {
 
     // Add main class and its arguments 
     vargs.add(YarnChild.class.getName());  // main of Child
+    // Pass the registry Path
+    vargs.add(registryPath);
     // pass TaskAttemptListener's address
     vargs.add(taskAttemptListenerAddr.getAddress().getHostAddress()); 
     vargs.add(Integer.toString(taskAttemptListenerAddr.getPort())); 

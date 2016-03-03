@@ -775,7 +775,7 @@ public class CapacityScheduler extends
   private synchronized void addApplicationAttempt(
       ApplicationAttemptId applicationAttemptId,
       boolean transferStateFromPreviousAttempt,
-      boolean isAttemptRecovering) {
+      boolean isAttemptRecovering, long containerId) {
     SchedulerApplication<FiCaSchedulerApp> application =
         applications.get(applicationAttemptId.getApplicationId());
     if (application == null) {
@@ -787,7 +787,7 @@ public class CapacityScheduler extends
 
     FiCaSchedulerApp attempt = new FiCaSchedulerApp(applicationAttemptId,
         application.getUser(), queue, queue.getActiveUsersManager(), rmContext,
-            application.getPriority(), isAttemptRecovering);
+            application.getPriority(), isAttemptRecovering, containerId);
     if (transferStateFromPreviousAttempt) {
       attempt.transferStateFromPreviousAttempt(
           application.getCurrentAppAttempt());
@@ -1375,7 +1375,8 @@ public class CapacityScheduler extends
           (AppAttemptAddedSchedulerEvent) event;
       addApplicationAttempt(appAttemptAddedEvent.getApplicationAttemptId(),
         appAttemptAddedEvent.getTransferStateFromPreviousAttempt(),
-        appAttemptAddedEvent.getIsAttemptRecovering());
+        appAttemptAddedEvent.getIsAttemptRecovering(),
+              appAttemptAddedEvent.getLastContainerId());
     }
     break;
     case APP_ATTEMPT_REMOVED:

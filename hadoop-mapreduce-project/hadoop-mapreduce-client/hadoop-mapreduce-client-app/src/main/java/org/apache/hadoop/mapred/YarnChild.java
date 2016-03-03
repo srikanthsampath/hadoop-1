@@ -60,6 +60,18 @@ import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 
+import org.apache.hadoop.registry.client.types.ServiceRecord;
+import org.apache.hadoop.registry.client.api.RegistryOperations;
+import org.apache.hadoop.registry.client.binding.RegistryUtils;
+import org.apache.hadoop.registry.client.binding.RegistryTypeUtils;
+import org.apache.hadoop.registry.client.binding.RegistryPathUtils;
+import org.apache.hadoop.registry.client.api.RegistryOperationsFactory;
+import org.apache.hadoop.registry.client.types.Endpoint;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Set;
+
+
 /**
  * The main() for MapReduce task processes.
  */
@@ -78,12 +90,34 @@ class YarnChild {
     Limits.init(job);
     UserGroupInformation.setConfiguration(job);
 
+
+    //SS_FIXME: Change to a parametrized set of input arguments instead of a positional one
+    //Should support both registry and nonregistry based approaches
+    String registryPath = args[0];
+
+    RegistryOperations registryOperations = RegistryOperationsFactory.createInstance("YarnRegistry", job);
+    registryOperations.start();
+
+    LOG.info("SS_DEBUG: RegistryPath: " + registryPath);
+    Map<String, ServiceRecord> recordMap = RegistryUtils.extractServiceRecords(registryOperations, RegistryPathUtils.parentOf(registryPath));
+
+    ServiceRecord listenerRecord = recordMap.get(registryPath);
+
+    Endpoint endPoint = listenerRecord.getInternalEndpoint("org.apache.hadoop.mapreduce.v2");
+
+    Map<String, String> hostPortMap = RegistryTypeUtils.retrieveAddressIpcType(endPoint);
+
+    String host = hostPortMap.get("host");
+    int port = Integer.parseInt(hostPortMap.get("port"));
+/*
     String host = args[0];
     int port = Integer.parseInt(args[1]);
+*/
+    LOG.info("SS_DEBUG: YarnChild: Host: " + host + " Port: " + port);
     final InetSocketAddress address =
         NetUtils.createSocketAddrForHost(host, port);
-    final TaskAttemptID firstTaskid = TaskAttemptID.forName(args[2]);
-    long jvmIdLong = Long.parseLong(args[3]);
+    final TaskAttemptID firstTaskid = TaskAttemptID.forName(args[3]);
+    long jvmIdLong = Long.parseLong(args[4]);
     JVMId jvmId = new JVMId(firstTaskid.getJobID(),
         firstTaskid.getTaskType() == TaskType.MAP, jvmIdLong);
     
@@ -108,6 +142,10 @@ class YarnChild {
     Token<JobTokenIdentifier> jt = TokenCache.getJobToken(credentials);
     SecurityUtil.setTokenService(jt, address);
     taskOwner.addToken(jt);
+
+    final TaskUmbilicalProtocol umbilical = UmbilicalFactory.getUmbilical(taskOwner, null, 
+                                                             registryOperations, job, registryPath);
+/*
     final TaskUmbilicalProtocol umbilical =
       taskOwner.doAs(new PrivilegedExceptionAction<TaskUmbilicalProtocol>() {
       @Override
@@ -116,6 +154,7 @@ class YarnChild {
             TaskUmbilicalProtocol.versionID, address, job);
       }
     });
+*/
 
     // report non-pid to application master
     JvmContext context = new JvmContext(jvmId, "-1000");
@@ -136,6 +175,7 @@ class YarnChild {
         myTask = umbilical.getTask(context);
       }
       if (myTask.shouldDie()) {
+        LOG.info("SS_DEBUG: Should die is set for the Task.  Return");
         return;
       }
 
@@ -222,7 +262,12 @@ class YarnChild {
         }
       }
     } finally {
-      RPC.stopProxy(umbilical);
+      Object proxy = null;
+      if (umbilical instanceof UmbilicalWithRetries)
+        proxy = ((UmbilicalWithRetries)umbilical).getUmbilicalProxy();
+      else
+        proxy = umbilical;
+      RPC.stopProxy(proxy);
       DefaultMetricsSystem.shutdown();
       TaskLog.syncLogsShutdown(logSyncer);
     }

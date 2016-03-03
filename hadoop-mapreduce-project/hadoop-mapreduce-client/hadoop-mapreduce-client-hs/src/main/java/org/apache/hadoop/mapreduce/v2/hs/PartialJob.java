@@ -41,6 +41,8 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.authorize.AccessControlList;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
+import org.apache.hadoop.registry.client.types.ServiceRecord;
+
 
 
 public class PartialJob implements org.apache.hadoop.mapreduce.v2.app.job.Job {
@@ -189,6 +191,16 @@ public class PartialJob implements org.apache.hadoop.mapreduce.v2.app.job.Job {
 
   @Override
   public List<AMInfo> getAMInfos() {
+    return null;
+  }
+
+  @Override
+  public String getServiceRegistryPath() {
+    return null;
+  }
+
+  @Override
+  public ServiceRecord getServiceRecord() {
     return null;
   }
   

@@ -40,10 +40,11 @@ public class ReduceTaskAttemptImpl extends TaskAttemptImpl {
       EventHandler eventHandler, Path jobFile, int partition,
       int numMapTasks, JobConf conf,
       TaskAttemptListener taskAttemptListener,
+      String registryPath,
       Token<JobTokenIdentifier> jobToken,
       Credentials credentials, Clock clock,
       AppContext appContext) {
-    super(id, attempt, eventHandler, taskAttemptListener, jobFile, partition,
+    super(id, attempt, eventHandler, taskAttemptListener, registryPath, jobFile, partition,
         conf, new String[] {}, jobToken, credentials, clock,
         appContext);
     this.numMapTasks = numMapTasks;
