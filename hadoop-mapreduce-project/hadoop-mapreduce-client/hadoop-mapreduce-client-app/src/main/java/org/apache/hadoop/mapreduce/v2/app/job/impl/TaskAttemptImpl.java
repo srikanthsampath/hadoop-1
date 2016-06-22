@@ -93,6 +93,7 @@ import org.apache.hadoop.mapreduce.v2.app.job.event.TaskAttemptEvent;
 import org.apache.hadoop.mapreduce.v2.app.job.event.TaskAttemptEventType;
 import org.apache.hadoop.mapreduce.v2.app.job.event.TaskAttemptKillEvent;
 import org.apache.hadoop.mapreduce.v2.app.job.event.TaskAttemptRecoverEvent;
+import org.apache.hadoop.mapreduce.v2.app.job.event.TaskAttemptRecoverInflightEvent;
 import org.apache.hadoop.mapreduce.v2.app.job.event.TaskAttemptStatusUpdateEvent;
 import org.apache.hadoop.mapreduce.v2.app.job.event.TaskAttemptStatusUpdateEvent.TaskAttemptStatus;
 import org.apache.hadoop.mapreduce.v2.app.job.event.TaskAttemptTooManyFetchFailureEvent;
@@ -186,6 +187,7 @@ public abstract class TaskAttemptImpl implements
   private Locality locality;
   private Avataar avataar;
   private boolean rescheduleNextAttempt = false;
+  private String registryEntry;
 
   private static final CleanupContainerTransition
       CLEANUP_CONTAINER_TRANSITION = new CleanupContainerTransition();
@@ -244,6 +246,9 @@ public abstract class TaskAttemptImpl implements
              TaskAttemptStateInternal.KILLED,
              TaskAttemptStateInternal.SUCCEEDED),
          TaskAttemptEventType.TA_RECOVER, new RecoverTransition())
+      .addTransition(TaskAttemptStateInternal.NEW,
+             TaskAttemptStateInternal.RUNNING,
+         TaskAttemptEventType.TA_RECOVER_INFLIGHT, new RecoverInflightTransition())
      .addTransition(TaskAttemptStateInternal.NEW,
          TaskAttemptStateInternal.NEW,
          TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE,
@@ -637,12 +642,13 @@ public abstract class TaskAttemptImpl implements
 
   public TaskAttemptImpl(TaskId taskId, int i, 
       EventHandler eventHandler,
-      TaskAttemptListener taskAttemptListener, Path jobFile, int partition,
+      TaskAttemptListener taskAttemptListener, String registryPath, Path jobFile, int partition,
       JobConf conf, String[] dataLocalHosts,
       Token<JobTokenIdentifier> jobToken,
       Credentials credentials, Clock clock,
       AppContext appContext) {
     oldJobId = TypeConverter.fromYarn(taskId.getJobId());
+    this.registryEntry = registryPath;
     this.conf = conf;
     this.clock = clock;
     attemptId = recordFactory.newRecordInstance(TaskAttemptId.class);
@@ -922,6 +928,7 @@ public abstract class TaskAttemptImpl implements
       final org.apache.hadoop.mapred.JobID oldJobId,
       WrappedJvmID jvmID,
       TaskAttemptListener taskAttemptListener,
+      String registryEntry,
       Credentials credentials) {
 
     synchronized (commonContainerSpecLock) {
@@ -948,7 +955,7 @@ public abstract class TaskAttemptImpl implements
 
     // Set up the launch command
     List<String> commands = MapReduceChildJVM.getVMCommand(
-        taskAttemptListener.getAddress(), remoteTask, jvmID);
+        taskAttemptListener.getAddress(), registryEntry, remoteTask, jvmID);
 
     // Duplicate the ByteBuffers for access by multiple containers.
     Map<String, ByteBuffer> myServiceData = new HashMap<String, ByteBuffer>();
@@ -1242,6 +1249,49 @@ public abstract class TaskAttemptImpl implements
   public void setAvataar(Avataar avataar) {
     this.avataar = avataar;
   }
+
+
+
+  public void recoverInflight(TaskAttemptInfo taInfo,
+      OutputCommitter committer, boolean recoverOutput) {
+
+    LOG.info("SS_DEBUG: " + "*****Begin Recovering Inflight Task attempt " +
+      " Attempt: " + taInfo.getAttemptId() + " Container: " + taInfo.getContainerId());
+    LOG.info("SS_DEBUG: TaskAttemptInfo:" + taInfo);
+    this.launchTime = taInfo.getStartTime();
+    this.trackerName = taInfo.getTrackerName();
+    this.httpPort = taInfo.getHttpPort();
+    this.shufflePort = taInfo.getShufflePort();
+    ContainerId containerId = taInfo.getContainerId();
+    NodeId containerNodeId = ConverterUtils.toNodeId(taInfo.getHostname() + ":"
+            + taInfo.getPort());
+    LOG.info("SS_DEBUG: ContainerId:" + containerId);
+    LOG.info("SS_DEBUG: ContainerNodeId:" + containerNodeId);
+    // SS_DEBUG: Hack without understanding to make it work.  figure out trackername/hostname/address/port/httpport/shuffleport
+    // Container instantiation uses something that is being used by TaskCompletionEvent
+    String nodeHttpAddress = StringInterner.weakIntern(taInfo.getTrackerName() + ":"
+            + taInfo.getShufflePort());
+    LOG.info("SS_DEBUG: Tracker: " + taInfo.getTrackerName() + "Shuffle Port:" + taInfo.getShufflePort());
+    LOG.info("SS_DEBUG: NodeHTTPAddress:" + nodeHttpAddress);
+    this.remoteTask = createRemoteTask();
+
+    WrappedJvmID jvmID =
+          new WrappedJvmID((org.apache.hadoop.mapred.JobID)taInfo.getAttemptId().getJobID(),
+              (taInfo.getTaskType()== org.apache.hadoop.mapreduce.TaskType.MAP),
+              taInfo.getContainerId().getContainerId());
+    this.jvmID = jvmID;
+    this.taskAttemptListener.registerPendingTask(remoteTask, jvmID);
+    taskAttemptListener.registerLaunchedTask(attemptId, jvmID);
+    this.container = Container.newInstance(containerId, containerNodeId, nodeHttpAddress, null, null, null)
+    ;
+    LOG.info("SS_DEBUG: " + " AttemptId: " + attemptId + " JVMID: " + jvmID);
+    LOG.info("SS_DEBUG: " + "*****End Recovering Inflight Task attempt " +
+      " Attempt: " + taInfo.getAttemptId() + " Container: " + taInfo.getContainerId());
+    // SS_DEBUG Recover and bind to the container
+  }
+
+
+
   
   @SuppressWarnings("unchecked")
   public TaskAttemptStateInternal recover(TaskAttemptInfo taInfo,
@@ -1703,7 +1753,7 @@ public abstract class TaskAttemptImpl implements
       ContainerLaunchContext launchContext = createContainerLaunchContext(
           cEvent.getApplicationACLs(), taskAttempt.conf, taskAttempt.jobToken,
           taskAttempt.remoteTask, taskAttempt.oldJobId, taskAttempt.jvmID,
-          taskAttempt.taskAttemptListener, taskAttempt.credentials);
+          taskAttempt.taskAttemptListener, taskAttempt.registryEntry, taskAttempt.credentials);
       taskAttempt.eventHandler
         .handle(new ContainerRemoteLaunchEvent(taskAttempt.attemptId,
           launchContext, container, taskAttempt.remoteTask));
@@ -1801,6 +1851,7 @@ public abstract class TaskAttemptImpl implements
           NetUtils.createSocketAddr(taskAttempt.container.getNodeHttpAddress());
       taskAttempt.trackerName = nodeHttpInetAddr.getHostName();
       taskAttempt.httpPort = nodeHttpInetAddr.getPort();
+      LOG.info("SS_DEBUG: LaunchedContainerTransition: Container launched:" + taskAttempt.container);
       taskAttempt.sendLaunchedEvents();
       taskAttempt.eventHandler.handle
           (new SpeculatorEvent
@@ -1901,6 +1952,21 @@ public abstract class TaskAttemptImpl implements
         taskAttempt.container.getContainerToken(),
         ContainerLauncher.EventType.CONTAINER_COMPLETED));
   }
+
+  private static class RecoverInflightTransition implements
+      SingleArcTransition<TaskAttemptImpl, TaskAttemptEvent> {
+
+    @Override
+    public void transition(TaskAttemptImpl taskAttempt,
+        TaskAttemptEvent event) {
+      TaskAttemptRecoverInflightEvent tare = (TaskAttemptRecoverInflightEvent) event;
+      taskAttempt.recoverInflight(tare.getTaskAttemptInfo(),
+          tare.getCommitter(), tare.getRecoverOutput());
+    }
+  }
+
+
+
 
   private static class RecoverTransition implements
       MultipleArcTransition<TaskAttemptImpl, TaskAttemptEvent, TaskAttemptStateInternal> {

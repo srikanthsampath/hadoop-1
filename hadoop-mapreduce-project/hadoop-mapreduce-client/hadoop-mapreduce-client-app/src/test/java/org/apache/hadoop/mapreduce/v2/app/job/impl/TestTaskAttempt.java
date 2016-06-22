@@ -340,7 +340,7 @@ public class TestTaskAttempt{
     JobConf jobConf = new JobConf();
     TaskAttemptImpl taImpl =
         new MapTaskAttemptImpl(taskId, 1, eventHandler, jobFile, 1,
-            taskSplitMetaInfo, jobConf, taListener, null,
+            taskSplitMetaInfo, jobConf, taListener, null, null,
             null, clock, null);
     return taImpl;
   }
@@ -516,7 +516,7 @@ public class TestTaskAttempt{
 
     TaskAttemptImpl taImpl =
       new MapTaskAttemptImpl(taskId, 1, eventHandler, jobFile, 1,
-          splits, jobConf, taListener,
+          splits, jobConf, taListener, null,
           new Token(), new Credentials(),
           SystemClock.getInstance(), null);
 
@@ -573,7 +573,7 @@ public class TestTaskAttempt{
 
     TaskAttemptImpl taImpl =
       new MapTaskAttemptImpl(taskId, 1, eventHandler, jobFile, 1,
-          splits, jobConf, taListener,
+          splits, jobConf, taListener, null,
           new Token(), new Credentials(),
           SystemClock.getInstance(), appCtx);
 
@@ -631,7 +631,7 @@ public class TestTaskAttempt{
 
     TaskAttemptImpl taImpl =
       new MapTaskAttemptImpl(taskId, 1, eventHandler, jobFile, 1,
-          splits, jobConf, taListener,
+          splits, jobConf, taListener, null,
           new Token(), new Credentials(),
           SystemClock.getInstance(), appCtx);
 
@@ -695,7 +695,7 @@ public class TestTaskAttempt{
 
     TaskAttemptImpl taImpl =
       new MapTaskAttemptImpl(taskId, 1, eventHandler, jobFile, 1,
-          splits, jobConf, taListener,
+          splits, jobConf, taListener, null,
           new Token(), new Credentials(),
           SystemClock.getInstance(), appCtx);
 
@@ -764,7 +764,7 @@ public class TestTaskAttempt{
     setupTaskAttemptFinishingMonitor(eventHandler, jobConf, appCtx);
 
     TaskAttemptImpl taImpl = new MapTaskAttemptImpl(taskId, 1, eventHandler,
-        jobFile, 1, splits, jobConf, taListener,
+        jobFile, 1, splits, jobConf, taListener, null,
         new Token(), new Credentials(), SystemClock.getInstance(), appCtx);
 
     NodeId nid = NodeId.newInstance("127.0.0.1", 0);
@@ -822,7 +822,7 @@ public class TestTaskAttempt{
 
     TaskAttemptImpl taImpl =
       new MapTaskAttemptImpl(taskId, 1, eventHandler, jobFile, 1,
-        splits, jobConf, taListener,
+        splits, jobConf, taListener, null,
         mock(Token.class), new Credentials(),
         SystemClock.getInstance(), appCtx);
 
@@ -889,7 +889,7 @@ public class TestTaskAttempt{
     setupTaskAttemptFinishingMonitor(eventHandler, jobConf, appCtx);
 
     TaskAttemptImpl taImpl = new MapTaskAttemptImpl(taskId, 1, eventHandler,
-        jobFile, 1, splits, jobConf, taListener,
+        jobFile, 1, splits, jobConf, taListener, null,
         new Token(), new Credentials(), SystemClock.getInstance(), appCtx);
 
     NodeId nid = NodeId.newInstance("127.0.0.1", 0);
@@ -939,7 +939,7 @@ public class TestTaskAttempt{
 
     TaskAttemptImpl taImpl =
       new MapTaskAttemptImpl(taskId, 1, eventHandler, jobFile, 1,
-      splits, jobConf, taListener,mock(Token.class), new Credentials(),
+      splits, jobConf, taListener, null, mock(Token.class), new Credentials(),
       SystemClock.getInstance(), appCtx);
 
     NodeId nid = NodeId.newInstance("127.0.0.1", 0);
@@ -988,7 +988,7 @@ public class TestTaskAttempt{
     TaskAttemptImpl taImpl =
         new MapTaskAttemptImpl(taskId, 1, eventHandler, mock(Path.class), 1,
             mock(TaskSplitMetaInfo.class), new JobConf(),
-            mock(TaskAttemptListener.class), mock(Token.class),
+            mock(TaskAttemptListener.class), null, mock(Token.class),
             new Credentials(), SystemClock.getInstance(),
             mock(AppContext.class));
     if (scheduleAttempt) {
@@ -1048,7 +1048,7 @@ public class TestTaskAttempt{
     when(resource.getMemorySize()).thenReturn(1024L);
 
     TaskAttemptImpl taImpl = new MapTaskAttemptImpl(taskId, 1, eventHandler,
-        jobFile, 1, splits, jobConf, taListener, new Token(),
+        jobFile, 1, splits, jobConf, taListener, null, new Token(),
         new Credentials(), SystemClock.getInstance(), appCtx);
 
     NodeId nid = NodeId.newInstance("127.0.0.2", 0);
@@ -1102,7 +1102,7 @@ public class TestTaskAttempt{
     when(resource.getMemorySize()).thenReturn(1024L);
 
     TaskAttemptImpl taImpl = new MapTaskAttemptImpl(taskId, 1, eventHandler,
-        jobFile, 1, splits, jobConf, taListener, new Token(),
+        jobFile, 1, splits, jobConf, taListener, null, new Token(),
         new Credentials(), SystemClock.getInstance(), appCtx);
 
     NodeId nid = NodeId.newInstance("127.0.0.2", 0);
@@ -1159,7 +1159,7 @@ public class TestTaskAttempt{
     when(resource.getMemorySize()).thenReturn(1024L);
 
     TaskAttemptImpl taImpl = new MapTaskAttemptImpl(taskId, 1, eventHandler,
-        jobFile, 1, splits, jobConf, taListener, new Token(),
+        jobFile, 1, splits, jobConf, taListener, null, new Token(),
         new Credentials(), SystemClock.getInstance(), appCtx);
 
     NodeId nid = NodeId.newInstance("127.0.0.2", 0);
@@ -1450,7 +1450,7 @@ public class TestTaskAttempt{
     TaskAttemptImpl taImpl =
         new MapTaskAttemptImpl(taskId, 1, eventHandler, jobFile, 1,
             splits, jobConf, taListener,
-            mock(Token.class), new Credentials(),
+            null, mock(Token.class), new Credentials(),
             SystemClock.getInstance(), appCtx);
 
     NodeId nid = NodeId.newInstance("127.0.0.1", 0);

@@ -749,7 +749,7 @@ public class MRApp extends MRAppMaster {
       super(jobId, getApplicationAttemptId(applicationId, getStartCount()),
           conf, eventHandler, taskAttemptListener,
           new JobTokenSecretManager(), new Credentials(), clock,
-          getCompletedTaskFromPreviousRun(), metrics, committer,
+          getCompletedTaskFromPreviousRun(), getInflightTaskFromPreviousRun(), metrics, committer,
           newApiCommitter, user, System.currentTimeMillis(), getAllAMInfos(),
           appContext, forcedState, diagnostic);
 

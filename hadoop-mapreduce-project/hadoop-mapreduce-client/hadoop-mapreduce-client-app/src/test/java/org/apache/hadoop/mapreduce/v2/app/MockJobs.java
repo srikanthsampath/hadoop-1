@@ -68,6 +68,8 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.util.Records;
+import org.apache.hadoop.registry.client.types.ServiceRecord;
+
 
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -639,6 +641,16 @@ public class MockJobs extends MockApps {
       @Override
       public void setJobPriority(Priority priority) {
         // do nothing
+      }
+
+      @Override
+      public String getServiceRegistryPath() {
+        return "";
+      }
+
+      @Override
+      public ServiceRecord getServiceRecord() {
+        return null;
       }
     };
   }

@@ -661,7 +661,7 @@ public class TestJobImpl {
 
     // Verify access
     JobImpl job1 = new JobImpl(jobId, null, conf1, null, null, null, null, null,
-        null, null, null, true, user1, 0, null, null, null, null);
+        null, null, null, null, true, user1, 0, null, null, null, null);
     Assert.assertTrue(job1.checkAccess(ugi1, JobACL.VIEW_JOB));
     Assert.assertFalse(job1.checkAccess(ugi2, JobACL.VIEW_JOB));
 
@@ -672,7 +672,7 @@ public class TestJobImpl {
 
     // Verify access
     JobImpl job2 = new JobImpl(jobId, null, conf2, null, null, null, null, null,
-        null, null, null, true, user1, 0, null, null, null, null);
+        null, null, null, null, true, user1, 0, null, null, null, null);
     Assert.assertTrue(job2.checkAccess(ugi1, JobACL.VIEW_JOB));
     Assert.assertTrue(job2.checkAccess(ugi2, JobACL.VIEW_JOB));
 
@@ -683,7 +683,7 @@ public class TestJobImpl {
 
     // Verify access
     JobImpl job3 = new JobImpl(jobId, null, conf3, null, null, null, null, null,
-        null, null, null, true, user1, 0, null, null, null, null);
+        null, null, null, null, true, user1, 0, null, null, null, null);
     Assert.assertTrue(job3.checkAccess(ugi1, JobACL.VIEW_JOB));
     Assert.assertTrue(job3.checkAccess(ugi2, JobACL.VIEW_JOB));
 
@@ -694,7 +694,7 @@ public class TestJobImpl {
 
     // Verify access
     JobImpl job4 = new JobImpl(jobId, null, conf4, null, null, null, null, null,
-        null, null, null, true, user1, 0, null, null, null, null);
+        null, null, null, null, true, user1, 0, null, null, null, null);
     Assert.assertTrue(job4.checkAccess(ugi1, JobACL.VIEW_JOB));
     Assert.assertTrue(job4.checkAccess(ugi2, JobACL.VIEW_JOB));
 
@@ -705,7 +705,7 @@ public class TestJobImpl {
 
     // Verify access
     JobImpl job5 = new JobImpl(jobId, null, conf5, null, null, null, null, null,
-        null, null, null, true, user1, 0, null, null, null, null);
+        null, null, null, null, true, user1, 0, null, null, null, null);
     Assert.assertTrue(job5.checkAccess(ugi1, null));
     Assert.assertTrue(job5.checkAccess(ugi2, null));
   }
@@ -725,7 +725,7 @@ public class TestJobImpl {
         mock(EventHandler.class),
         null, mock(JobTokenSecretManager.class), null,
         SystemClock.getInstance(), null,
-        mrAppMetrics, null, true, null, 0, null, mockContext, null, null);
+        null, mrAppMetrics, null, true, null, 0, null, mockContext, null, null);
     job.handle(diagUpdateEvent);
     String diagnostics = job.getReport().getDiagnostics();
     Assert.assertNotNull(diagnostics);
@@ -736,7 +736,7 @@ public class TestJobImpl {
         mock(EventHandler.class),
         null, mock(JobTokenSecretManager.class), null,
         SystemClock.getInstance(), null,
-        mrAppMetrics, null, true, null, 0, null, mockContext, null, null);
+        null, mrAppMetrics, null, true, null, 0, null, mockContext, null, null);
     job.handle(new JobEvent(jobId, JobEventType.JOB_KILL));
     job.handle(diagUpdateEvent);
     diagnostics = job.getReport().getDiagnostics();
@@ -801,7 +801,7 @@ public class TestJobImpl {
         new JobImpl(jobId, ApplicationAttemptId.newInstance(
           ApplicationId.newInstance(0, 0), 0), conf, mock(EventHandler.class),
           null, new JobTokenSecretManager(), new Credentials(), null, null,
-          mrAppMetrics, null, true, null, 0, null, null, null, null);
+          null, mrAppMetrics, null, true, null, 0, null, null, null, null);
     InitTransition initTransition = getInitTransition(2);
     JobEvent mockJobEvent = mock(JobEvent.class);
     initTransition.transition(job, mockJobEvent);
@@ -874,7 +874,7 @@ public class TestJobImpl {
         new JobImpl(jobId, ApplicationAttemptId.newInstance(
           ApplicationId.newInstance(0, 0), 0), conf, mock(EventHandler.class),
           null, new JobTokenSecretManager(), new Credentials(), null, null,
-          mrAppMetrics, null, true, null, 0, null, null, null, null);
+          null, mrAppMetrics, null, true, null, 0, null, null, null, null);
     InitTransition initTransition = new InitTransition() {
         @Override
         protected TaskSplitMetaInfo[] createSplits(JobImpl job, JobId jobId) {
@@ -1107,6 +1107,7 @@ public class TestJobImpl {
       super(jobId, applicationAttemptId, conf, eventHandler,
           null, new JobTokenSecretManager(), new Credentials(),
           SystemClock.getInstance(), Collections.<TaskId, TaskInfo> emptyMap(),
+          Collections.<TaskId, TaskInfo> emptyMap(),
           MRAppMetrics.create(), null, newApiCommitter, user,
           System.currentTimeMillis(), null, appContext, null, null);
 

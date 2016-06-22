@@ -27,6 +27,7 @@ public enum TaskAttemptEventType {
   TA_SCHEDULE,
   TA_RESCHEDULE,
   TA_RECOVER,
+  TA_RECOVER_INFLIGHT,
 
   //Producer:Client, Task
   TA_KILL,

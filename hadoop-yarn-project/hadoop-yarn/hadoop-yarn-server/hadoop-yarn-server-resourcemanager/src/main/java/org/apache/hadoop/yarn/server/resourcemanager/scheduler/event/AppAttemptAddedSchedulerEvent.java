@@ -25,21 +25,25 @@ public class AppAttemptAddedSchedulerEvent extends SchedulerEvent {
   private final ApplicationAttemptId applicationAttemptId;
   private final boolean transferStateFromPreviousAttempt;
   private final boolean isAttemptRecovering;
+  private final long lastContainerId;
 
   public AppAttemptAddedSchedulerEvent(
       ApplicationAttemptId applicationAttemptId,
       boolean transferStateFromPreviousAttempt) {
-    this(applicationAttemptId, transferStateFromPreviousAttempt, false);
+    this(applicationAttemptId, transferStateFromPreviousAttempt, false, 0);
   }
+
 
   public AppAttemptAddedSchedulerEvent(
       ApplicationAttemptId applicationAttemptId,
       boolean transferStateFromPreviousAttempt,
-      boolean isAttemptRecovering) {
+      boolean isAttemptRecovering,
+      long lastContainerId) {
     super(SchedulerEventType.APP_ATTEMPT_ADDED);
     this.applicationAttemptId = applicationAttemptId;
     this.transferStateFromPreviousAttempt = transferStateFromPreviousAttempt;
     this.isAttemptRecovering = isAttemptRecovering;
+    this.lastContainerId = lastContainerId;
   }
 
   public ApplicationAttemptId getApplicationAttemptId() {
@@ -53,4 +57,6 @@ public class AppAttemptAddedSchedulerEvent extends SchedulerEvent {
   public boolean getIsAttemptRecovering() {
     return isAttemptRecovering;
   }
+
+  public long getLastContainerId() { return lastContainerId; }
 }

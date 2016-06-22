@@ -122,6 +122,11 @@ import org.apache.hadoop.mapreduce.v2.util.MRApps;
 import org.apache.hadoop.mapreduce.v2.util.MRBuilderUtils;
 import org.apache.hadoop.mapreduce.v2.util.MRWebAppUtil;
 import org.apache.hadoop.metrics2.lib.DefaultMetricsSystem;
+import org.apache.hadoop.registry.client.api.RegistryOperations;
+import org.apache.hadoop.registry.client.binding.RegistryUtils;
+import org.apache.hadoop.registry.client.binding.RegistryTypeUtils;
+import org.apache.hadoop.registry.client.binding.RegistryPathUtils;
+import org.apache.hadoop.registry.client.api.RegistryOperationsFactory;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
@@ -151,6 +156,12 @@ import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.log4j.LogManager;
+
+import org.apache.hadoop.registry.client.types.yarn.YarnRegistryAttributes;
+import org.apache.hadoop.registry.client.types.yarn.PersistencePolicies;
+import org.apache.hadoop.registry.client.types.ServiceRecord;
+import java.net.InetSocketAddress;
+import org.apache.hadoop.registry.client.api.BindFlags;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -196,6 +207,7 @@ public class MRAppMaster extends CompositeService {
   private final int nmHttpPort;
   protected final MRAppMetrics metrics;
   private Map<TaskId, TaskInfo> completedTasksFromPreviousRun;
+  private Map<TaskId, TaskInfo> inflightTasksFromPreviousRun;
   private List<AMInfo> amInfos;
   private AppContext context;
   private Dispatcher dispatcher;
@@ -227,6 +239,8 @@ public class MRAppMaster extends CompositeService {
 
   private Job job;
   private Credentials jobCredentials = new Credentials(); // Filled during init
+  private RegistryOperations registryOperations;
+  private String registryPath;
   protected UserGroupInformation currentUser; // Will be setup during init
 
   @VisibleForTesting
@@ -491,8 +505,23 @@ public class MRAppMaster extends CompositeService {
       // queued inside the JobHistoryEventHandler 
       addIfService(historyService);
     }
+
+    // Create Registry Operations Service
+    registryOperations = createRegistryOperationsService(conf);
+    addIfService(registryOperations);
+    LOG.info(registryOperations.toString());
+
     super.serviceInit(conf);
   } // end of init()
+
+
+
+  private RegistryOperations createRegistryOperationsService(Configuration conf) {
+    RegistryOperations registryOperations = RegistryOperationsFactory.createInstance("YarnRegistry", conf);
+    return registryOperations;
+  }
+
+
   
   protected Dispatcher createDispatcher() {
     return new AsyncDispatcher();
@@ -756,7 +785,7 @@ public class MRAppMaster extends CompositeService {
     Job newJob =
         new JobImpl(jobId, appAttemptID, conf, dispatcher.getEventHandler(),
             taskAttemptListener, jobTokenSecretManager, jobCredentials, clock,
-            completedTasksFromPreviousRun, metrics,
+            completedTasksFromPreviousRun, inflightTasksFromPreviousRun, metrics,
             committer, newApiCommitter,
             currentUser.getUserName(), appSubmitTime, amInfos, context, 
             forcedState, diagnostic);
@@ -912,6 +941,10 @@ public class MRAppMaster extends CompositeService {
 
   public Map<TaskId, TaskInfo> getCompletedTaskFromPreviousRun() {
     return completedTasksFromPreviousRun;
+  }
+
+  public Map<TaskId, TaskInfo> getInflightTaskFromPreviousRun() {
+    return inflightTasksFromPreviousRun;
   }
 
   public List<AMInfo> getAllAMInfos() {
@@ -1172,7 +1205,13 @@ public class MRAppMaster extends CompositeService {
 
     amInfos = new LinkedList<AMInfo>();
     completedTasksFromPreviousRun = new HashMap<TaskId, TaskInfo>();
+    inflightTasksFromPreviousRun = new HashMap<TaskId, TaskInfo>();
     processRecovery();
+
+    // Start Yarn Service Registry
+    registryOperations.start();
+    registryPath = initServiceRecord(jobId);
+    LOG.info("SS_DEBUG: Registry Path initialized " + registryPath);
 
     // Current an AMInfo for the current AM generation.
     AMInfo amInfo =
@@ -1181,7 +1220,7 @@ public class MRAppMaster extends CompositeService {
 
     // /////////////////// Create the job itself.
     job = createJob(getConfig(), forcedState, shutDownMessage);
-
+    ((JobImpl)job).setRegistryPath(registryPath);
     // End of creating the job.
 
     // Send out an MR AM inited event for all previous AMs.
@@ -1244,6 +1283,11 @@ public class MRAppMaster extends CompositeService {
     }
     //start all the components
     super.serviceStart();
+
+    // Register the listener
+    registryPath = registerListener(job, taskAttemptListener.getAddress());
+    LOG.info("SS_DEBUG: Registry Path for AM: " + registryPath);
+
 
     // finally set the job classloader
     MRApps.setClassLoader(jobClassLoader, getConfig());
@@ -1339,6 +1383,11 @@ public class MRAppMaster extends CompositeService {
         appAttemptID);
     JobHistoryParser parser = new JobHistoryParser(in);
     JobInfo jobInfo = parser.parse();
+
+    System.out.println("SS_DEBUG: Recovery Information: BEGIN");
+    jobInfo.printAll();
+    System.out.println("SS_DEBUG: Recovery Information: END");
+
     Exception parseException = parser.getParseException();
     if (parseException != null) {
       LOG.info("Got an error parsing job-history file" +
@@ -1350,6 +1399,8 @@ public class MRAppMaster extends CompositeService {
       if (TaskState.SUCCEEDED.toString().equals(taskInfo.getTaskStatus())) {
         Iterator<Entry<TaskAttemptID, TaskAttemptInfo>> taskAttemptIterator =
             taskInfo.getAllTaskAttempts().entrySet().iterator();
+
+        //SS_FIXME: Want to retain the last one?
         while (taskAttemptIterator.hasNext()) {
           Map.Entry<TaskAttemptID, TaskAttemptInfo> currentEntry = taskAttemptIterator.next();
           if (!jobInfo.getAllCompletedTaskAttempts().containsKey(currentEntry.getKey())) {
@@ -1360,10 +1411,25 @@ public class MRAppMaster extends CompositeService {
             .put(TypeConverter.toYarn(taskInfo.getTaskId()), taskInfo);
         LOG.info("Read from history task "
             + TypeConverter.toYarn(taskInfo.getTaskId()));
+      } else if (taskInfo.getTaskStatus() == null) {
+        Map<TaskAttemptID, TaskAttemptInfo> attemptsMap = taskInfo.getAllTaskAttempts();
+        //SS_FIXME: Weak... strengthen this
+        for (TaskAttemptInfo attemptInfo : attemptsMap.values()) {
+          if ((attemptInfo.getStartTime() != -1) && (attemptInfo.getFinishTime() == -1) &&
+                                      (attemptInfo.getContainerId() != null)) {
+              inflightTasksFromPreviousRun.put(TypeConverter.toYarn(taskInfo.getTaskId()), taskInfo);
+              LOG.info("SS_DEBUG: Inflight Task: " + TypeConverter.toYarn(taskInfo.getTaskId()) + " Container: " + attemptInfo.getContainerId());
+              break;
+          }
+        }
       }
     }
     LOG.info("Read completed tasks from history "
         + completedTasksFromPreviousRun.size());
+
+    LOG.info("SS_DEBUG: Read inflight tasks from history "
+        + inflightTasksFromPreviousRun.size());
+
     recoveredJobStartTime = jobInfo.getLaunchTime();
 
     // recover AMInfos
@@ -1530,6 +1596,65 @@ public class MRAppMaster extends CompositeService {
       //Empty
     }
   }
+
+
+  private String initServiceRecord(JobId jobId) throws IOException {
+    // Yarn registry
+    ServiceRecord serviceRecord = new ServiceRecord();
+    serviceRecord.set(YarnRegistryAttributes.YARN_ID, jobId);
+    serviceRecord.set(YarnRegistryAttributes.YARN_PERSISTENCE,
+        PersistencePolicies.APPLICATION);
+    serviceRecord.description = "MapReduce Application Master";
+
+    String username = UserGroupInformation.getCurrentUser().getUserName();
+    String serviceClass = "MRAppMaster";
+    String instanceName = jobId.toString(); //SS_FIXME: What should be the instance name
+    return putService(username, serviceClass, instanceName, serviceRecord, true);
+  }
+
+
+  private String registerListener(Job job, InetSocketAddress serviceAddress) throws IOException {
+    // Yarn registry
+    ServiceRecord serviceRecord = new ServiceRecord();
+    serviceRecord.set(YarnRegistryAttributes.YARN_ID, job.getID());
+    serviceRecord.set(YarnRegistryAttributes.YARN_PERSISTENCE,
+        PersistencePolicies.APPLICATION);
+    serviceRecord.description = "MapReduce Application Master";
+
+    serviceRecord.addInternalEndpoint(
+        RegistryTypeUtils.ipcEndpoint(
+           "org.apache.hadoop.mapreduce.v2",
+            serviceAddress));
+
+    String username = UserGroupInformation.getCurrentUser().getUserName();
+    String serviceClass = "MRAppMaster";
+    String instanceName = job.getID().toString(); //SS_FIXME: What should be the instance name
+    return putService(username, serviceClass, instanceName, serviceRecord, false);
+
+  }
+
+  public String putService(String username,
+      String serviceClass,
+      String serviceName,
+      ServiceRecord record,
+      boolean deleteTreeFirst) throws IOException {
+    String path = RegistryUtils.servicePath(
+        username, serviceClass, serviceName);
+
+    if (deleteTreeFirst) {
+      registryOperations.delete(path, true);
+    }
+
+    registryOperations.mknode(RegistryPathUtils.parentOf(path), true);
+
+    registryOperations.bind(path, record, BindFlags.OVERWRITE);
+    return path;
+  }
+
+
+
+
+
   
   private static void validateInputParam(String value, String param)
       throws IOException {

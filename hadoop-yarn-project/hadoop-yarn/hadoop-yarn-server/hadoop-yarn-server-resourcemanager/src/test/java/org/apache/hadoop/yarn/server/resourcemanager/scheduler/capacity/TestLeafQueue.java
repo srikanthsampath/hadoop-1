@@ -2418,7 +2418,7 @@ public class TestLeafQueue {
     FiCaSchedulerApp app_0 = 
         spy(new FiCaSchedulerApp(appAttemptId_0, user_0, a, 
             mock(ActiveUsersManager.class), spyRMContext,
-            Priority.newInstance(3), false));
+            Priority.newInstance(3), false, 0));
     a.submitApplicationAttempt(app_0, user_0);
     
     final ApplicationAttemptId appAttemptId_1 = 
@@ -2426,7 +2426,7 @@ public class TestLeafQueue {
     FiCaSchedulerApp app_1 = 
         spy(new FiCaSchedulerApp(appAttemptId_1, user_0, a, 
             mock(ActiveUsersManager.class), spyRMContext,
-            Priority.newInstance(5), false));
+            Priority.newInstance(5), false, 0));
     a.submitApplicationAttempt(app_1, user_0);
  
     Priority priority = TestUtils.createMockPriority(1);

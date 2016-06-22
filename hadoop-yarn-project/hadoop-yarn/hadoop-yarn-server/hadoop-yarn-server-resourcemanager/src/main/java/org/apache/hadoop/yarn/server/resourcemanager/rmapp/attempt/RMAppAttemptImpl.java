@@ -979,10 +979,12 @@ public class RMAppAttemptImpl implements RMAppAttempt, Recoverable {
         RMAppAttemptEvent event) {
 
 	    boolean transferStateFromPreviousAttempt = false;
+      long lastContainerId = 0;
       if (event instanceof RMAppStartAttemptEvent) {
         transferStateFromPreviousAttempt =
             ((RMAppStartAttemptEvent) event)
               .getTransferStateFromPreviousAttempt();
+        lastContainerId = ((RMAppStartAttemptEvent) event).getContainerId();
       }
       appAttempt.startTime = System.currentTimeMillis();
 
@@ -999,7 +1001,7 @@ public class RMAppAttemptImpl implements RMAppAttempt, Recoverable {
       // Add the applicationAttempt to the scheduler and inform the scheduler
       // whether to transfer the state from previous attempt.
       appAttempt.eventHandler.handle(new AppAttemptAddedSchedulerEvent(
-        appAttempt.applicationAttemptId, transferStateFromPreviousAttempt));
+        appAttempt.applicationAttemptId, transferStateFromPreviousAttempt, false, lastContainerId));
     }
   }
 
@@ -1163,8 +1165,9 @@ public class RMAppAttemptImpl implements RMAppAttempt, Recoverable {
             && !RMAppImpl.isAppInFinalState(rmApp)) {
           // Add the previous finished attempt to scheduler synchronously so
           // that scheduler knows the previous attempt.
+          //SS_FIXME: Need to figure out if this is ok
           appAttempt.scheduler.handle(new AppAttemptAddedSchedulerEvent(
-            appAttempt.getAppAttemptId(), false, true));
+            appAttempt.getAppAttemptId(), false, true, 0));
           (new BaseFinalTransition(appAttempt.recoveredFinalState)).transition(
               appAttempt, event);
         }
@@ -1195,8 +1198,9 @@ public class RMAppAttemptImpl implements RMAppAttempt, Recoverable {
 
           // Add attempt to scheduler synchronously to guarantee scheduler
           // knows attempts before AM or NM re-registers.
+          //SS_FIXME: Need to figure it out if it is ok
           appAttempt.scheduler.handle(new AppAttemptAddedSchedulerEvent(
-            appAttempt.getAppAttemptId(), false, true));
+            appAttempt.getAppAttemptId(), false, true, 0));
         }
 
         /*
@@ -1397,6 +1401,8 @@ public class RMAppAttemptImpl implements RMAppAttempt, Recoverable {
               keepContainersAcrossAppAttempts = true;
             }
           }
+          //SS_FIXME: Set keepContainerAcrossAttempts
+          keepContainersAcrossAppAttempts = true;
           appEvent =
               new RMAppFailedAttemptEvent(applicationId,
                 RMAppEventType.ATTEMPT_FAILED, appAttempt.getDiagnostics(),

@@ -903,9 +903,15 @@ public class RMAppImpl implements RMApp, Recoverable {
   
   private void
       createAndStartNewAttempt(boolean transferStateFromPreviousAttempt) {
+    long latestContainerId = 0;
+    if (currentAttempt != null) {
+      LOG.info("Retrieving for attemptId:"+ currentAttempt.getAppAttemptId());
+      latestContainerId = scheduler.getSchedulerAppInfo(currentAttempt.getAppAttemptId()).getLastContainerId();
+    }
+    LOG.info("SS_DEBUG:Trying to Set:" + "Container Id: " + latestContainerId);
     createNewAttempt();
     handler.handle(new RMAppStartAttemptEvent(currentAttempt.getAppAttemptId(),
-      transferStateFromPreviousAttempt));
+      transferStateFromPreviousAttempt, latestContainerId));
   }
 
   private void processNodeUpdate(RMAppNodeUpdateType type, RMNode node) {

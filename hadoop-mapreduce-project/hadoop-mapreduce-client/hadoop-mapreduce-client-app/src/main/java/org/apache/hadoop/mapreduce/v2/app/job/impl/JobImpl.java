@@ -108,6 +108,7 @@ import org.apache.hadoop.mapreduce.v2.app.job.event.TaskAttemptTooManyFetchFailu
 import org.apache.hadoop.mapreduce.v2.app.job.event.TaskEvent;
 import org.apache.hadoop.mapreduce.v2.app.job.event.TaskEventType;
 import org.apache.hadoop.mapreduce.v2.app.job.event.TaskRecoverEvent;
+import org.apache.hadoop.mapreduce.v2.app.job.event.TaskRecoverInflightEvent;
 import org.apache.hadoop.mapreduce.v2.app.metrics.MRAppMetrics;
 import org.apache.hadoop.mapreduce.v2.util.MRApps;
 import org.apache.hadoop.mapreduce.v2.util.MRBuilderUtils;
@@ -130,6 +131,8 @@ import org.apache.hadoop.yarn.state.SingleArcTransition;
 import org.apache.hadoop.yarn.state.StateMachine;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
+import org.apache.hadoop.registry.client.types.ServiceRecord;
+
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -169,6 +172,7 @@ public class JobImpl implements org.apache.hadoop.mapreduce.v2.app.job.Job,
   private float mapWeight = 0.0f;
   private float reduceWeight = 0.0f;
   private final Map<TaskId, TaskInfo> completedTasksFromPreviousRun;
+  private final Map<TaskId, TaskInfo> inflightTasksFromPreviousRun;
   private final List<AMInfo> amInfos;
   private final Lock readLock;
   private final Lock writeLock;
@@ -201,6 +205,9 @@ public class JobImpl implements org.apache.hadoop.mapreduce.v2.app.job.Job,
   private Counters fullCounters = null;
   private Counters finalMapCounters = null;
   private Counters finalReduceCounters = null;
+  private ServiceRecord serviceRecord = null;
+  private String serviceRegistryPath = null;
+
 
     // FIXME:  
     //
@@ -642,6 +649,8 @@ public class JobImpl implements org.apache.hadoop.mapreduce.v2.app.job.Job,
   private float reduceProgress;
   private float cleanupProgress;
   private boolean isUber = false;
+  private boolean retainContainers = true;
+
 
   private Credentials jobCredentials;
   private Token<JobTokenIdentifier> jobToken;
@@ -662,7 +671,9 @@ public class JobImpl implements org.apache.hadoop.mapreduce.v2.app.job.Job,
       TaskAttemptListener taskAttemptListener,
       JobTokenSecretManager jobTokenSecretManager,
       Credentials jobCredentials, Clock clock,
-      Map<TaskId, TaskInfo> completedTasksFromPreviousRun, MRAppMetrics metrics,
+      Map<TaskId, TaskInfo> completedTasksFromPreviousRun,
+      Map<TaskId, TaskInfo> inflightTasksFromPreviousRun,
+      MRAppMetrics metrics,
       OutputCommitter committer, boolean newApiCommitter, String userName,
       long appSubmitTime, List<AMInfo> amInfos, AppContext appContext,
       JobStateInternal forcedState, String forcedDiagnostic) {
@@ -673,6 +684,7 @@ public class JobImpl implements org.apache.hadoop.mapreduce.v2.app.job.Job,
     this.metrics = metrics;
     this.clock = clock;
     this.completedTasksFromPreviousRun = completedTasksFromPreviousRun;
+    this.inflightTasksFromPreviousRun = inflightTasksFromPreviousRun;
     this.amInfos = amInfos;
     this.appContext = appContext;
     this.userName = userName;
@@ -715,10 +727,35 @@ public class JobImpl implements org.apache.hadoop.mapreduce.v2.app.job.Job,
     this.maxFetchFailuresNotifications = conf.getInt(
         MRJobConfig.MAX_FETCH_FAILURES_NOTIFICATIONS,
         MRJobConfig.DEFAULT_MAX_FETCH_FAILURES_NOTIFICATIONS);
+
+/* SS_FIXME: Config to keep containers running.  This exists already?
+    this.retainContainers = conf.getBoolean(
+        MRJobConfig.MR_AM_KEEP_CONTAINERS_ACROSS_ATTEMPTS,
+        MRJobConfig.MR_AM_KEEP_CONTAINERS_ACROSS_ATTEMPTS_DEFAULT);
+*/
   }
 
   protected StateMachine<JobStateInternal, JobEventType, JobEvent> getStateMachine() {
     return stateMachine;
+  }
+
+  public void setServiceRecord(ServiceRecord record) {
+    this.serviceRecord = record;
+  }
+
+  public void setRegistryPath(String path) {
+    this.serviceRegistryPath = path;
+  }
+
+
+  @Override
+  public ServiceRecord getServiceRecord() {
+    return serviceRecord;
+  }
+
+  @Override
+  public String getServiceRegistryPath() {
+    return serviceRegistryPath;
   }
 
   @Override
@@ -977,8 +1014,14 @@ public class JobImpl implements org.apache.hadoop.mapreduce.v2.app.job.Job,
       boolean recoverTaskOutput) {
     for (TaskId taskID : taskIDs) {
       TaskInfo taskInfo = completedTasksFromPreviousRun.remove(taskID);
+      TaskInfo inflightInfo = inflightTasksFromPreviousRun.remove(taskID);
+      // We need to add inflight tasks here
       if (taskInfo != null) {
         eventHandler.handle(new TaskRecoverEvent(taskID, taskInfo,
+            committer, recoverTaskOutput));
+      } else if (inflightInfo != null) {
+        LOG.info("SS_DEBUG: Handle inflight task: " + taskID);
+        eventHandler.handle(new TaskRecoverInflightEvent(taskID, inflightInfo,
             committer, recoverTaskOutput));
       } else {
         eventHandler.handle(new TaskEvent(taskID, TaskEventType.T_SCHEDULE));
@@ -1550,6 +1593,7 @@ public class JobImpl implements org.apache.hadoop.mapreduce.v2.app.job.Job,
                 job.remoteJobConfFile, 
                 job.conf, splits[i], 
                 job.taskAttemptListener, 
+                job.serviceRegistryPath,
                 job.jobToken, job.jobCredentials,
                 job.clock,
                 job.applicationAttemptId.getAttemptId(),
@@ -1567,7 +1611,7 @@ public class JobImpl implements org.apache.hadoop.mapreduce.v2.app.job.Job,
                 job.eventHandler, 
                 job.remoteJobConfFile, 
                 job.conf, job.numMapTasks, 
-                job.taskAttemptListener, job.jobToken,
+                job.taskAttemptListener, job.serviceRegistryPath, job.jobToken,
                 job.jobCredentials, job.clock,
                 job.applicationAttemptId.getAttemptId(),
                 job.metrics, job.appContext);
@@ -2230,5 +2274,9 @@ public class JobImpl implements org.apache.hadoop.mapreduce.v2.app.job.Job,
   @Override
   public void setJobPriority(Priority priority) {
     this.jobPriority = priority;
+  }
+
+  public boolean getRetainContainers() {
+    return retainContainers;
   }
 }

@@ -103,17 +103,19 @@ public class TestTaskAttemptContainerRequest {
     TaskAttemptImpl taImpl =
         new MapTaskAttemptImpl(taskId, 1, eventHandler, jobFile, 1,
             mock(TaskSplitMetaInfo.class), jobConf, taListener,
-            jobToken, credentials,
+            null, jobToken, credentials,
             SystemClock.getInstance(), null);
 
     jobConf.set(MRJobConfig.APPLICATION_ATTEMPT_ID, taImpl.getID().toString());
+
+    String registryEntry = "";
 
     ContainerLaunchContext launchCtx =
         TaskAttemptImpl.createContainerLaunchContext(acls,
             jobConf, jobToken, taImpl.createRemoteTask(),
             TypeConverter.fromYarn(jobId),
             mock(WrappedJvmID.class), taListener,
-            credentials);
+            registryEntry, credentials);
 
     Assert.assertEquals("ACLs mismatch", acls, launchCtx.getApplicationACLs());
     Credentials launchCredentials = new Credentials();

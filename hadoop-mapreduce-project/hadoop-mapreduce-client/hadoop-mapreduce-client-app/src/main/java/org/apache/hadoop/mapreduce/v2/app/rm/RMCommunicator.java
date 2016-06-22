@@ -23,6 +23,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.EnumSet;
 import java.util.Map;
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -51,6 +52,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.client.ClientRMProxy;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.exceptions.ApplicationMasterNotRegisteredException;
@@ -58,6 +60,8 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
 import org.apache.hadoop.yarn.factories.RecordFactory;
 import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
+import org.apache.hadoop.yarn.client.api.NMTokenCache;
+import org.apache.hadoop.yarn.api.records.NMToken;
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.yarn.proto.YarnServiceProtos.SchedulerResourceTypes;
@@ -172,6 +176,24 @@ public abstract class RMCommunicator extends AbstractService
       LOG.info("queue: " + queue);
       job.setQueueName(queue);
       this.schedulerResourceTypes.addAll(response.getSchedulerResourceTypes());
+
+      //ork Preserving AM. Get the list of containers from previous attempts
+      List<Container> previousContainers = response.getContainersFromPreviousAttempts();
+
+      LOG.info("SS_DEBUG: Previous Containers Begin");
+      for (Container container: previousContainers)
+          LOG.info("Container: " + container);
+      LOG.info("SS_DEBUG: Previous Containers End");
+
+      //Work Preserving AM.  Get the list of NMTokens to communicate with
+      //the NMs where the previous containers were running
+      List<NMToken> previousNMTokens = response.getNMTokensFromPreviousAttempts();
+
+      for (NMToken nmToken: previousNMTokens) {
+          LOG.info("NMToken: " + nmToken);
+          NMTokenCache.setNMToken(nmToken.getNodeId().toString(),
+            nmToken.getToken());
+      }
     } catch (Exception are) {
       LOG.error("Exception while registering", are);
       throw new YarnRuntimeException(are);

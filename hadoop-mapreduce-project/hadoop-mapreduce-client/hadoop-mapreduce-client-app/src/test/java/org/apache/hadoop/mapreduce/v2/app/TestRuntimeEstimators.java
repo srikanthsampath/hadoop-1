@@ -78,6 +78,7 @@ import org.apache.hadoop.yarn.security.client.ClientToAMTokenSecretManager;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.ControlledClock;
 import org.apache.hadoop.yarn.util.SystemClock;
+import org.apache.hadoop.registry.client.types.ServiceRecord;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -453,6 +454,16 @@ public class TestRuntimeEstimators {
     @Override
     public int getCompletedReduces() {
       return completedReduces.get();
+    }
+
+    @Override
+    public ServiceRecord getServiceRecord() {
+      return null;
+    }
+
+    @Override
+    public String getServiceRegistryPath() {
+      return "";
     }
 
     @Override

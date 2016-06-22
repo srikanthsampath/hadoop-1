@@ -24,6 +24,8 @@ import org.apache.hadoop.mapred.ReduceTaskAttemptImpl;
 import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.mapreduce.security.token.JobTokenIdentifier;
 import org.apache.hadoop.mapreduce.v2.api.records.JobId;
+import org.apache.hadoop.mapreduce.v2.api.records.TaskAttemptId;
+import org.apache.hadoop.mapreduce.v2.api.records.TaskId;
 import org.apache.hadoop.mapreduce.v2.api.records.TaskType;
 import org.apache.hadoop.mapreduce.v2.app.AppContext;
 import org.apache.hadoop.mapreduce.v2.app.TaskAttemptListener;
@@ -41,11 +43,12 @@ public class ReduceTaskImpl extends TaskImpl {
   public ReduceTaskImpl(JobId jobId, int partition,
       EventHandler eventHandler, Path jobFile, JobConf conf,
       int numMapTasks, TaskAttemptListener taskAttemptListener,
+      String registryPath,
       Token<JobTokenIdentifier> jobToken,
       Credentials credentials, Clock clock,
       int appAttemptId, MRAppMetrics metrics, AppContext appContext) {
     super(jobId, TaskType.REDUCE, partition, eventHandler, jobFile, conf,
-        taskAttemptListener, jobToken, credentials, clock,
+        taskAttemptListener, registryPath, jobToken, credentials, clock,
         appAttemptId, metrics, appContext);
     this.numMapTasks = numMapTasks;
   }
@@ -60,8 +63,24 @@ public class ReduceTaskImpl extends TaskImpl {
     return new ReduceTaskAttemptImpl(getID(), nextAttemptNumber,
         eventHandler, jobFile,
         partition, numMapTasks, conf, taskAttemptListener,
-        jobToken, credentials, clock, appContext);
+        registryEntry, jobToken, credentials, clock, appContext);
   }
+
+
+  @Override
+  protected TaskAttemptImpl createAttempt(TaskAttemptId attemptId) {
+
+    TaskId taskId = attemptId.getTaskId();
+    int attempt = attemptId.getId();
+
+
+    return new ReduceTaskAttemptImpl(taskId, attempt,
+        eventHandler, jobFile,
+        partition, numMapTasks, conf, taskAttemptListener,
+        registryEntry, jobToken, credentials, clock, appContext);
+  }
+
+
 
   @Override
   public TaskType getType() {

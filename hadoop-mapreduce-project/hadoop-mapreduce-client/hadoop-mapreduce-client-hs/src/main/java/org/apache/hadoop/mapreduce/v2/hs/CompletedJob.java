@@ -67,6 +67,8 @@ import org.apache.hadoop.security.authorize.AccessControlList;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
 import org.apache.hadoop.yarn.util.Records;
+import org.apache.hadoop.registry.client.types.ServiceRecord;
+
 
 
 /**
@@ -119,6 +121,17 @@ public class CompletedJob implements org.apache.hadoop.mapreduce.v2.app.job.Job 
   public Counters getAllCounters() {
     return jobInfo.getTotalCounters();
   }
+
+   //SS_FIXME: Keep Compiler happy
+   @Override
+   public String getServiceRegistryPath() {
+     return null;
+   }
+
+   @Override
+   public ServiceRecord getServiceRecord() {
+     return null;
+   }
 
   @Override
   public JobId getID() {

@@ -150,6 +150,8 @@ public abstract class AbstractYarnScheduler
     if (app == null) {
       return containerList;
     }
+
+    LOG.info("SS_DEBUG: Getting LiveContainers for Attempt:" + app.getCurrentAppAttempt().getApplicationAttemptId());
     Collection<RMContainer> liveContainers =
         app.getCurrentAppAttempt().getLiveContainers();
     ContainerId amContainerId =
@@ -158,6 +160,7 @@ public abstract class AbstractYarnScheduler
     for (RMContainer rmContainer : liveContainers) {
       if (!rmContainer.getContainerId().equals(amContainerId)) {
         containerList.add(rmContainer.getContainer());
+        LOG.info("SS_DEBUG:Adding Live Containers:" + rmContainer);
       }
     }
     return containerList;

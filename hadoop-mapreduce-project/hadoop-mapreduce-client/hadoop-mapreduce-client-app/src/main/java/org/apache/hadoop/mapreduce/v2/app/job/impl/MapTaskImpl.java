@@ -25,6 +25,8 @@ import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.mapreduce.security.token.JobTokenIdentifier;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitMetaInfo;
 import org.apache.hadoop.mapreduce.v2.api.records.JobId;
+import org.apache.hadoop.mapreduce.v2.api.records.TaskAttemptId;
+import org.apache.hadoop.mapreduce.v2.api.records.TaskId;
 import org.apache.hadoop.mapreduce.v2.api.records.TaskType;
 import org.apache.hadoop.mapreduce.v2.app.AppContext;
 import org.apache.hadoop.mapreduce.v2.app.TaskAttemptListener;
@@ -43,11 +45,12 @@ public class MapTaskImpl extends TaskImpl {
       Path remoteJobConfFile, JobConf conf,
       TaskSplitMetaInfo taskSplitMetaInfo,
       TaskAttemptListener taskAttemptListener,
+      String registryPath,
       Token<JobTokenIdentifier> jobToken,
       Credentials credentials, Clock clock,
       int appAttemptId, MRAppMetrics metrics, AppContext appContext) {
     super(jobId, TaskType.MAP, partition, eventHandler, remoteJobConfFile,
-        conf, taskAttemptListener, jobToken, credentials, clock,
+        conf, taskAttemptListener, registryPath, jobToken, credentials, clock,
         appAttemptId, metrics, appContext);
     this.taskSplitMetaInfo = taskSplitMetaInfo;
   }
@@ -62,7 +65,19 @@ public class MapTaskImpl extends TaskImpl {
     return new MapTaskAttemptImpl(getID(), nextAttemptNumber,
         eventHandler, jobFile,
         partition, taskSplitMetaInfo, conf, taskAttemptListener,
-        jobToken, credentials, clock, appContext);
+        registryEntry, jobToken, credentials, clock, appContext);
+  }
+
+   @Override
+  protected TaskAttemptImpl createAttempt(TaskAttemptId attemptId) {
+
+    TaskId taskId = attemptId.getTaskId();
+    int attempt = attemptId.getId();
+
+    return new MapTaskAttemptImpl(taskId, attempt,
+        eventHandler, jobFile,
+        partition, taskSplitMetaInfo, conf, taskAttemptListener,
+        registryEntry, jobToken, credentials, clock, appContext);
   }
 
   @Override
