@@ -188,6 +188,7 @@ public abstract class TaskAttemptImpl implements
   private Avataar avataar;
   private boolean rescheduleNextAttempt = false;
   private String registryEntry;
+  private boolean isWorkPreserving;
 
   private static final CleanupContainerTransition
       CLEANUP_CONTAINER_TRANSITION = new CleanupContainerTransition();
@@ -650,6 +651,7 @@ public abstract class TaskAttemptImpl implements
     oldJobId = TypeConverter.fromYarn(taskId.getJobId());
     this.registryEntry = registryPath;
     this.conf = conf;
+    this.isWorkPreserving = this.conf.getBoolean(MRJobConfig.MR_AM_WORK_PRESERVE, MRJobConfig.DEFAULT_MR_AM_WORK_PRESERVE);
     this.clock = clock;
     attemptId = recordFactory.newRecordInstance(TaskAttemptId.class);
     attemptId.setTaskId(taskId);
@@ -929,6 +931,7 @@ public abstract class TaskAttemptImpl implements
       WrappedJvmID jvmID,
       TaskAttemptListener taskAttemptListener,
       String registryEntry,
+      boolean isWorkPreserving,
       Credentials credentials) {
 
     synchronized (commonContainerSpecLock) {
@@ -955,7 +958,7 @@ public abstract class TaskAttemptImpl implements
 
     // Set up the launch command
     List<String> commands = MapReduceChildJVM.getVMCommand(
-        taskAttemptListener.getAddress(), registryEntry, remoteTask, jvmID);
+        taskAttemptListener.getAddress(), remoteTask, jvmID, isWorkPreserving, registryEntry);
 
     // Duplicate the ByteBuffers for access by multiple containers.
     Map<String, ByteBuffer> myServiceData = new HashMap<String, ByteBuffer>();
@@ -1753,7 +1756,8 @@ public abstract class TaskAttemptImpl implements
       ContainerLaunchContext launchContext = createContainerLaunchContext(
           cEvent.getApplicationACLs(), taskAttempt.conf, taskAttempt.jobToken,
           taskAttempt.remoteTask, taskAttempt.oldJobId, taskAttempt.jvmID,
-          taskAttempt.taskAttemptListener, taskAttempt.registryEntry, taskAttempt.credentials);
+          taskAttempt.taskAttemptListener, taskAttempt.registryEntry, taskAttempt.isWorkPreserving,
+          taskAttempt.credentials);
       taskAttempt.eventHandler
         .handle(new ContainerRemoteLaunchEvent(taskAttempt.attemptId,
           launchContext, container, taskAttempt.remoteTask));

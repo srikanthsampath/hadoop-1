@@ -780,8 +780,8 @@ public class JobConf extends Configuration {
   public void 
   setMapOutputCompressorClass(Class<? extends CompressionCodec> codecClass) {
     setCompressMapOutput(true);
-    setClass(JobContext.MAP_OUTPUT_COMPRESS_CODEC, codecClass, 
-             CompressionCodec.class);
+    setClass(JobContext.MAP_OUTPUT_COMPRESS_CODEC, codecClass,
+        CompressionCodec.class);
   }
   
   /**
@@ -1750,8 +1750,8 @@ public class JobConf extends Configuration {
    * @return the task ranges
    */
   public IntegerRanges getProfileTaskRange(boolean isMap) {
-    return getRange((isMap ? JobContext.NUM_MAP_PROFILES : 
-                       JobContext.NUM_REDUCE_PROFILES), "0-2");
+    return getRange((isMap ? JobContext.NUM_MAP_PROFILES :
+        JobContext.NUM_REDUCE_PROFILES), "0-2");
   }
 
   /**
@@ -2186,6 +2186,10 @@ public class JobConf extends Configuration {
     }
     // -Xmx not specified
     return -1;
+  }
+
+  public boolean isWorkPreserving() {
+    return getBoolean(JobContext.MR_AM_WORK_PRESERVE, JobContext.DEFAULT_MR_AM_WORK_PRESERVE);
   }
 
   private int getMemoryRequiredHelper(

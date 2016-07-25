@@ -450,6 +450,7 @@ public interface MRJobConfig {
   public static final String JOB_SUBMITHOSTADDR =
     "mapreduce.job.submithostaddress";
 
+
   public static final String COUNTERS_MAX_KEY = "mapreduce.job.counters.max";
   public static final int COUNTERS_MAX_DEFAULT = 120;
 
@@ -727,6 +728,10 @@ public interface MRJobConfig {
       MR_AM_PREFIX + "hard-kill-timeout-ms";
   public static final long DEFAULT_MR_AM_HARD_KILL_TIMEOUT_MS =
       10 * 1000l;
+
+  public static final String MR_AM_WORK_PRESERVE =
+      MR_AM_PREFIX + "job.workpreserving";
+  public static final boolean DEFAULT_MR_AM_WORK_PRESERVE = false;
 
   /**
    * Duration to wait before forcibly preempting a reducer to allow

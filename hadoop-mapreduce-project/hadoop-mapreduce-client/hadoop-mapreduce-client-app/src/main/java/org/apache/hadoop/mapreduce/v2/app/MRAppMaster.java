@@ -228,6 +228,7 @@ public class MRAppMaster extends CompositeService {
   private SpeculatorEventDispatcher speculatorEventDispatcher;
   private AMPreemptionPolicy preemptionPolicy;
   private byte[] encryptedSpillKey;
+  private boolean isWorkPreserving;
 
   // After a task attempt completes from TaskUmbilicalProtocol's point of view,
   // it will be transitioned to finishing state.
@@ -292,6 +293,10 @@ public class MRAppMaster extends CompositeService {
   protected void serviceInit(final Configuration conf) throws Exception {
     // create the job classloader if enabled
     createJobClassLoader(conf);
+
+    isWorkPreserving = conf.getBoolean(MRJobConfig.MR_AM_WORK_PRESERVE, MRJobConfig.DEFAULT_MR_AM_WORK_PRESERVE);
+
+    LOG.info("SS_DEBUG: WorkPreserving: " + isWorkPreserving);
 
     conf.setBoolean(Dispatcher.DISPATCHER_EXIT_ON_ERROR_KEY, true);
 
@@ -506,10 +511,15 @@ public class MRAppMaster extends CompositeService {
       addIfService(historyService);
     }
 
-    // Create Registry Operations Service
-    registryOperations = createRegistryOperationsService(conf);
-    addIfService(registryOperations);
-    LOG.info(registryOperations.toString());
+    // Create Registry Operations Service if we have work preserving enabled
+    if (isWorkPreserving) {
+      registryOperations = createRegistryOperationsService(conf);
+      addIfService(registryOperations);
+      LOG.info("Registry Operations Service started:" + registryOperations.toString());
+    } else {
+      LOG.info("No Registry Operations Service as Work Preserving is not Enabled");
+    }
+
 
     super.serviceInit(conf);
   } // end of init()
@@ -1209,9 +1219,11 @@ public class MRAppMaster extends CompositeService {
     processRecovery();
 
     // Start Yarn Service Registry
-    registryOperations.start();
-    registryPath = initServiceRecord(jobId);
-    LOG.info("SS_DEBUG: Registry Path initialized " + registryPath);
+    if (isWorkPreserving) {
+      registryOperations.start();
+      registryPath = initServiceRecord(jobId);
+      LOG.info("SS_DEBUG: Registry Path initialized " + registryPath);
+    }
 
     // Current an AMInfo for the current AM generation.
     AMInfo amInfo =
@@ -1220,7 +1232,11 @@ public class MRAppMaster extends CompositeService {
 
     // /////////////////// Create the job itself.
     job = createJob(getConfig(), forcedState, shutDownMessage);
-    ((JobImpl)job).setRegistryPath(registryPath);
+
+    // If the job is WorkPreserving set the registry path
+    if (isWorkPreserving) {
+      ((JobImpl) job).setRegistryPath(registryPath);
+    }
     // End of creating the job.
 
     // Send out an MR AM inited event for all previous AMs.
@@ -1285,9 +1301,10 @@ public class MRAppMaster extends CompositeService {
     super.serviceStart();
 
     // Register the listener
-    registryPath = registerListener(job, taskAttemptListener.getAddress());
-    LOG.info("SS_DEBUG: Registry Path for AM: " + registryPath);
-
+    if (isWorkPreserving) {
+      registryPath = registerListener(job, taskAttemptListener.getAddress());
+      LOG.info("SS_DEBUG: Registry Path for AM: " + registryPath + "Address:" + taskAttemptListener.getAddress());
+    }
 
     // finally set the job classloader
     MRApps.setClassLoader(jobClassLoader, getConfig());
@@ -1411,9 +1428,10 @@ public class MRAppMaster extends CompositeService {
             .put(TypeConverter.toYarn(taskInfo.getTaskId()), taskInfo);
         LOG.info("Read from history task "
             + TypeConverter.toYarn(taskInfo.getTaskId()));
-      } else if (taskInfo.getTaskStatus() == null) {
+      } else if (isWorkPreserving && taskInfo.getTaskStatus() == null) {
+        // Useful only if we are work preserving
         Map<TaskAttemptID, TaskAttemptInfo> attemptsMap = taskInfo.getAllTaskAttempts();
-        //SS_FIXME: Weak... strengthen this
+        //SS_FIX_ME: Weak... strengthen this
         for (TaskAttemptInfo attemptInfo : attemptsMap.values()) {
           if ((attemptInfo.getStartTime() != -1) && (attemptInfo.getFinishTime() == -1) &&
                                       (attemptInfo.getContainerId() != null)) {
@@ -1531,6 +1549,10 @@ public class MRAppMaster extends CompositeService {
     public void handle(TaskAttemptEvent event) {
       Job job = context.getJob(event.getTaskAttemptID().getTaskId().getJobId());
       Task task = job.getTask(event.getTaskAttemptID().getTaskId());
+      if (task == null) {
+        LOG.info("SS_DEBUG: Task is null");
+        LOG.info("SS_DEBUG: ID:for id:" + event.getTaskAttemptID().getTaskId());
+      }
       TaskAttempt attempt = task.getAttempt(event.getTaskAttemptID());
       ((EventHandler<TaskAttemptEvent>) attempt).handle(event);
     }

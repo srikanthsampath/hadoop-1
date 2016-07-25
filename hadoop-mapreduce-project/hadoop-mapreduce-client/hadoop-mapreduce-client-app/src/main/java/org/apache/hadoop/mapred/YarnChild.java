@@ -91,36 +91,30 @@ class YarnChild {
     UserGroupInformation.setConfiguration(job);
 
 
-    //SS_FIXME: Change to a parametrized set of input arguments instead of a positional one
-    //Should support both registry and nonregistry based approaches
-    String registryPath = args[0];
+    RegistryOperations registryOperations = null;
+    String registryPath = null;
 
-    RegistryOperations registryOperations = RegistryOperationsFactory.createInstance("YarnRegistry", job);
-    registryOperations.start();
-
-    LOG.info("SS_DEBUG: RegistryPath: " + registryPath);
-    Map<String, ServiceRecord> recordMap = RegistryUtils.extractServiceRecords(registryOperations, RegistryPathUtils.parentOf(registryPath));
-
-    ServiceRecord listenerRecord = recordMap.get(registryPath);
-
-    Endpoint endPoint = listenerRecord.getInternalEndpoint("org.apache.hadoop.mapreduce.v2");
-
-    Map<String, String> hostPortMap = RegistryTypeUtils.retrieveAddressIpcType(endPoint);
-
-    String host = hostPortMap.get("host");
-    int port = Integer.parseInt(hostPortMap.get("port"));
-/*
     String host = args[0];
     int port = Integer.parseInt(args[1]);
-*/
+
+    boolean isWorkPreserving = job.isWorkPreserving();
+
+
     LOG.info("SS_DEBUG: YarnChild: Host: " + host + " Port: " + port);
     final InetSocketAddress address =
         NetUtils.createSocketAddrForHost(host, port);
-    final TaskAttemptID firstTaskid = TaskAttemptID.forName(args[3]);
-    long jvmIdLong = Long.parseLong(args[4]);
+    final TaskAttemptID firstTaskid = TaskAttemptID.forName(args[2]);
+    long jvmIdLong = Long.parseLong(args[3]);
     JVMId jvmId = new JVMId(firstTaskid.getJobID(),
         firstTaskid.getTaskType() == TaskType.MAP, jvmIdLong);
-    
+
+    // If it is work preserving, retrieve the registry path
+    if (isWorkPreserving) {
+      registryOperations = RegistryOperationsFactory.createInstance("YarnRegistry", job);
+      registryOperations.start();
+      registryPath = args[4];
+    }
+
     CallerContext.setCurrent(
         new CallerContext.Builder("mr_" + firstTaskid.toString()).build());
 
@@ -143,18 +137,13 @@ class YarnChild {
     SecurityUtil.setTokenService(jt, address);
     taskOwner.addToken(jt);
 
-    final TaskUmbilicalProtocol umbilical = UmbilicalFactory.getUmbilical(taskOwner, null, 
-                                                             registryOperations, job, registryPath);
-/*
-    final TaskUmbilicalProtocol umbilical =
-      taskOwner.doAs(new PrivilegedExceptionAction<TaskUmbilicalProtocol>() {
-      @Override
-      public TaskUmbilicalProtocol run() throws Exception {
-        return (TaskUmbilicalProtocol)RPC.getProxy(TaskUmbilicalProtocol.class,
-            TaskUmbilicalProtocol.versionID, address, job);
-      }
-    });
-*/
+    TaskUmbilicalProtocol umbilical = null;
+
+    if (isWorkPreserving) {
+      umbilical = UmbilicalFactory.getUmbilical(taskOwner, address, registryOperations, registryPath, job);
+    } else {
+      umbilical = UmbilicalFactory.getUmbilical(taskOwner, address, job);
+    }
 
     // report non-pid to application master
     JvmContext context = new JvmContext(jvmId, "-1000");
@@ -162,6 +151,8 @@ class YarnChild {
     Task task = null;
     UserGroupInformation childUGI = null;
     ScheduledExecutorService logSyncer = null;
+    final TaskUmbilicalProtocol umbilicalFinal = umbilical;
+
 
     try {
       int idleLoopCount = 0;
@@ -211,7 +202,7 @@ class YarnChild {
           // use job-specified working directory
           setEncryptedSpillKeyIfRequired(taskFinal);
           FileSystem.get(job).setWorkingDirectory(job.getWorkingDirectory());
-          taskFinal.run(job, umbilical); // run the task
+          taskFinal.run(job, umbilicalFinal); // run the task
           return null;
         }
       });
@@ -233,7 +224,7 @@ class YarnChild {
             childUGI.doAs(new PrivilegedExceptionAction<Object>() {
               @Override
               public Object run() throws Exception {
-                taskFinal.taskCleanup(umbilical);
+                taskFinal.taskCleanup(umbilicalFinal);
                 return null;
               }
             });

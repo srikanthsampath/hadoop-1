@@ -109,7 +109,7 @@ public class TestShuffleProvider {
             jobConf, jobToken, taImpl.createRemoteTask(),
             TypeConverter.fromYarn(jobId),
             mock(WrappedJvmID.class), taListener,
-            registryEntry, credentials);
+            registryEntry, false, credentials);
 
     Map<String, ByteBuffer> serviceDataMap = launchCtx.getServiceData();
     Assert.assertNotNull("TestShuffleHandler1 is missing", serviceDataMap.get(TestShuffleHandler1.MAPREDUCE_TEST_SHUFFLE_SERVICEID));

@@ -301,6 +301,7 @@ public class RetryInvocationHandler<T> implements RpcInvocationHandler {
     }
 
     if (isFailover) {
+      LOG.info("SS_DEBUG: Performing failover");
       proxyDescriptor.failover(expectedFailoverCount, method);
       counters.failovers++;
     }

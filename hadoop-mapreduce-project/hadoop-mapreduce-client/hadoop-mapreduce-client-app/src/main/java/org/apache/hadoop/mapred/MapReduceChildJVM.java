@@ -103,9 +103,16 @@ public class MapReduceChildJVM {
     return jobConf.getTaskJavaOpts(isMapTask ? TaskType.MAP : TaskType.REDUCE);
   }
 
+
   public static List<String> getVMCommand(
-      InetSocketAddress taskAttemptListenerAddr, String registryPath, Task task, 
+      InetSocketAddress taskAttemptListenerAddr,  Task task,
       JVMId jvmID) {
+    return getVMCommand(taskAttemptListenerAddr, task, jvmID, false, null);
+  }
+
+  public static List<String> getVMCommand(
+      InetSocketAddress taskAttemptListenerAddr,  Task task,
+      JVMId jvmID, boolean isWorkPreserving, String registryPath) {
 
     TaskAttemptID attemptID = task.getTaskID();
     JobConf conf = task.conf;
@@ -168,8 +175,8 @@ public class MapReduceChildJVM {
 
     // Add main class and its arguments 
     vargs.add(YarnChild.class.getName());  // main of Child
-    // Pass the registry Path
-    vargs.add(registryPath);
+
+
     // pass TaskAttemptListener's address
     vargs.add(taskAttemptListenerAddr.getAddress().getHostAddress()); 
     vargs.add(Integer.toString(taskAttemptListenerAddr.getPort())); 
@@ -179,6 +186,11 @@ public class MapReduceChildJVM {
     vargs.add(String.valueOf(jvmID.getId()));
     vargs.add("1>" + getTaskLogFile(TaskLog.LogName.STDOUT));
     vargs.add("2>" + getTaskLogFile(TaskLog.LogName.STDERR));
+
+    // Pass the registry Path
+    if (isWorkPreserving) {
+      vargs.add(registryPath);
+    }
 
     // Final commmand
     StringBuilder mergedCommand = new StringBuilder();

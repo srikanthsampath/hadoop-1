@@ -115,7 +115,7 @@ public class TestTaskAttemptContainerRequest {
             jobConf, jobToken, taImpl.createRemoteTask(),
             TypeConverter.fromYarn(jobId),
             mock(WrappedJvmID.class), taListener,
-            registryEntry, credentials);
+            registryEntry, false, credentials);
 
     Assert.assertEquals("ACLs mismatch", acls, launchCtx.getApplicationACLs());
     Credentials launchCredentials = new Credentials();
