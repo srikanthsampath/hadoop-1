@@ -97,7 +97,7 @@ class YarnChild {
     String host = args[0];
     int port = Integer.parseInt(args[1]);
 
-    boolean isWorkPreserving = job.isWorkPreserving();
+    boolean isWorkPreserving = job.getWorkPreserving();
 
 
     LOG.info("SS_DEBUG: YarnChild: Host: " + host + " Port: " + port);
@@ -218,7 +218,7 @@ class YarnChild {
         if (task != null) {
           // do cleanup for the task
           if (childUGI == null) { // no need to job into doAs block
-            task.taskCleanup(umbilical);
+            task.taskCleanup(umbilicalFinal);
           } else {
             final Task taskFinal = task;
             childUGI.doAs(new PrivilegedExceptionAction<Object>() {
@@ -253,12 +253,7 @@ class YarnChild {
         }
       }
     } finally {
-      Object proxy = null;
-      if (umbilical instanceof UmbilicalWithRetries)
-        proxy = ((UmbilicalWithRetries)umbilical).getUmbilicalProxy();
-      else
-        proxy = umbilical;
-      RPC.stopProxy(proxy);
+      RPC.stopProxy(umbilicalFinal);
       DefaultMetricsSystem.shutdown();
       TaskLog.syncLogsShutdown(logSyncer);
     }

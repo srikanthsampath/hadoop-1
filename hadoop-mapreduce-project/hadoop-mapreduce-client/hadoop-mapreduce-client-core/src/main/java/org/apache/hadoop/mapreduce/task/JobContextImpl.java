@@ -452,6 +452,6 @@ public class JobContextImpl implements JobContext {
     return credentials;
   }
 
-  public boolean isWorkPreserving() { return conf.isWorkPreserving();}
+  public boolean isWorkPreserving() { return conf.getWorkPreserving();}
   
 }

@@ -1267,6 +1267,10 @@ public class JobConf extends Configuration {
     setBoolean(JobContext.MAP_SPECULATIVE, speculativeExecution);
   }
 
+  public void setWorkPreserving(boolean workPreserving) {
+    setBoolean(JobContext.MR_AM_WORK_PRESERVE, workPreserving);
+  }
+
   /**
    * Should speculative execution be used for this job for reduce tasks? 
    * Defaults to <code>true</code>.
@@ -2188,7 +2192,7 @@ public class JobConf extends Configuration {
     return -1;
   }
 
-  public boolean isWorkPreserving() {
+  public boolean getWorkPreserving() {
     return getBoolean(JobContext.MR_AM_WORK_PRESERVE, JobContext.DEFAULT_MR_AM_WORK_PRESERVE);
   }
 

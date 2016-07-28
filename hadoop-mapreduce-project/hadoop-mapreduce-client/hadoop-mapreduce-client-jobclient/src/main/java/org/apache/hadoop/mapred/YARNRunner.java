@@ -532,7 +532,7 @@ public class YARNRunner implements ClientProtocol {
     }
     appContext.setApplicationName(                             // Job name
         jobConf.get(JobContext.JOB_NAME,
-        YarnConfiguration.DEFAULT_APPLICATION_NAME));
+            YarnConfiguration.DEFAULT_APPLICATION_NAME));
     appContext.setCancelTokensWhenComplete(
         conf.getBoolean(MRJobConfig.JOB_CANCEL_DELEGATION_TOKEN, true));
     appContext.setAMContainerSpec(amContainer);         // AM Container
@@ -540,6 +540,9 @@ public class YARNRunner implements ClientProtocol {
         conf.getInt(MRJobConfig.MR_AM_MAX_ATTEMPTS,
             MRJobConfig.DEFAULT_MR_AM_MAX_ATTEMPTS));
     appContext.setResource(capability);
+
+    appContext.setKeepContainersAcrossApplicationAttempts(conf.getBoolean(MRJobConfig.MR_AM_WORK_PRESERVE, 
+        MRJobConfig.DEFAULT_MR_AM_WORK_PRESERVE));
 
     // set labels for the AM container request if present
     String amNodelabelExpression = conf.get(MRJobConfig.AM_NODE_LABEL_EXP);

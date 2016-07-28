@@ -1069,6 +1069,11 @@ public class Job extends JobContextImpl implements JobContext {
     conf.setSpeculativeExecution(speculativeExecution);
   }
 
+  public void setWorkPreserving(boolean workPreserving) {
+    ensureState(JobState.DEFINE);
+    conf.setWorkPreserving(workPreserving);
+  }
+
   /**
    * Turn speculative execution on or off for this job for map tasks. 
    * 

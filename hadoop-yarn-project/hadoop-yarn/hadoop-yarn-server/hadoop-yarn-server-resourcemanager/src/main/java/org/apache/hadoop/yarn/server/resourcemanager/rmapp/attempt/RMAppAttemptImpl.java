@@ -1401,8 +1401,6 @@ public class RMAppAttemptImpl implements RMAppAttempt, Recoverable {
               keepContainersAcrossAppAttempts = true;
             }
           }
-          //SS_FIXME: Set keepContainerAcrossAttempts
-          keepContainersAcrossAppAttempts = true;
           appEvent =
               new RMAppFailedAttemptEvent(applicationId,
                 RMAppEventType.ATTEMPT_FAILED, appAttempt.getDiagnostics(),
@@ -1416,7 +1414,7 @@ public class RMAppAttemptImpl implements RMAppAttempt, Recoverable {
         }
         break;
       }
-
+      LOG.info("SS_DEBUG: KeepContainers:" + keepContainersAcrossAppAttempts);
       appAttempt.eventHandler.handle(appEvent);
       appAttempt.eventHandler.handle(new AppAttemptRemovedSchedulerEvent(
         appAttemptId, finalAttemptState, keepContainersAcrossAppAttempts));

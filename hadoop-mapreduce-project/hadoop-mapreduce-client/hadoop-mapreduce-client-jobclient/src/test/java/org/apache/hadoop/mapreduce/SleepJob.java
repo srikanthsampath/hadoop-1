@@ -195,7 +195,7 @@ public class SleepJob extends Configured implements Tool {
     System.exit(res);
   }
 
-  public Job createJob(int numMapper, int numReducer, 
+  public Job createJob(int numMapper, int numReducer,
                        long mapSleepTime, int mapSleepCount, 
                        long reduceSleepTime, int reduceSleepCount) 
       throws IOException {
@@ -216,6 +216,7 @@ public class SleepJob extends Configured implements Tool {
     job.setInputFormatClass(SleepInputFormat.class);
     job.setPartitionerClass(SleepJobPartitioner.class);
     job.setSpeculativeExecution(false);
+    job.setWorkPreserving(true);
     job.setJobName("Sleep job");
     FileInputFormat.addInputPath(job, new Path("ignored"));
     return job;

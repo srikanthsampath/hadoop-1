@@ -1417,7 +1417,7 @@ public class MRAppMaster extends CompositeService {
         Iterator<Entry<TaskAttemptID, TaskAttemptInfo>> taskAttemptIterator =
             taskInfo.getAllTaskAttempts().entrySet().iterator();
 
-        //SS_FIXME: Want to retain the last one?
+        //Want to retain the last one
         while (taskAttemptIterator.hasNext()) {
           Map.Entry<TaskAttemptID, TaskAttemptInfo> currentEntry = taskAttemptIterator.next();
           if (!jobInfo.getAllCompletedTaskAttempts().containsKey(currentEntry.getKey())) {
@@ -1431,7 +1431,7 @@ public class MRAppMaster extends CompositeService {
       } else if (isWorkPreserving && taskInfo.getTaskStatus() == null) {
         // Useful only if we are work preserving
         Map<TaskAttemptID, TaskAttemptInfo> attemptsMap = taskInfo.getAllTaskAttempts();
-        //SS_FIX_ME: Weak... strengthen this
+        //SS_FIXME: Weak? strengthen this
         for (TaskAttemptInfo attemptInfo : attemptsMap.values()) {
           if ((attemptInfo.getStartTime() != -1) && (attemptInfo.getFinishTime() == -1) &&
                                       (attemptInfo.getContainerId() != null)) {
@@ -1549,6 +1549,7 @@ public class MRAppMaster extends CompositeService {
     public void handle(TaskAttemptEvent event) {
       Job job = context.getJob(event.getTaskAttemptID().getTaskId().getJobId());
       Task task = job.getTask(event.getTaskAttemptID().getTaskId());
+      //SS_FIXME: Race conditions between spawning of tasks and recording in job history
       if (task == null) {
         LOG.info("SS_DEBUG: Task is null");
         LOG.info("SS_DEBUG: ID:for id:" + event.getTaskAttemptID().getTaskId());
