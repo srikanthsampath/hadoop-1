@@ -515,9 +515,9 @@ public class MRAppMaster extends CompositeService {
     if (isWorkPreserving) {
       registryOperations = createRegistryOperationsService(conf);
       addIfService(registryOperations);
-      LOG.info("Registry Operations Service started:" + registryOperations.toString());
+      LOG.info("Registry Opeeations Service started:" + registryOperations.toString());
     } else {
-      LOG.info("No Registry Operations Service as Work Preserving is not Enabled");
+      LOG.info("SS_DEBUG: No Registry Operations Service as Work Preserving is not Enabled");
     }
 
 
@@ -1430,13 +1430,16 @@ public class MRAppMaster extends CompositeService {
             + TypeConverter.toYarn(taskInfo.getTaskId()));
       } else if (isWorkPreserving && taskInfo.getTaskStatus() == null) {
         // Useful only if we are work preserving
+        // Record all the inflight tasks
         Map<TaskAttemptID, TaskAttemptInfo> attemptsMap = taskInfo.getAllTaskAttempts();
+
         //SS_FIXME: Weak? strengthen this
         for (TaskAttemptInfo attemptInfo : attemptsMap.values()) {
           if ((attemptInfo.getStartTime() != -1) && (attemptInfo.getFinishTime() == -1) &&
                                       (attemptInfo.getContainerId() != null)) {
               inflightTasksFromPreviousRun.put(TypeConverter.toYarn(taskInfo.getTaskId()), taskInfo);
-              LOG.info("SS_DEBUG: Inflight Task: " + TypeConverter.toYarn(taskInfo.getTaskId()) + " Container: " + attemptInfo.getContainerId());
+              LOG.info("SS_DEBUG: Inflight Task: " + TypeConverter.toYarn(taskInfo.getTaskId()) + 
+                                      " Container: " + attemptInfo.getContainerId());
               break;
           }
         }
@@ -1656,7 +1659,7 @@ public class MRAppMaster extends CompositeService {
 
   }
 
-  public String putService(String username,
+  private String putService(String username,
       String serviceClass,
       String serviceName,
       ServiceRecord record,

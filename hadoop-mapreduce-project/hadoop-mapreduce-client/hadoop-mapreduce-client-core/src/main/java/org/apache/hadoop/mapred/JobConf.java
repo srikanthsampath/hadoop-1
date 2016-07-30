@@ -781,7 +781,7 @@ public class JobConf extends Configuration {
   setMapOutputCompressorClass(Class<? extends CompressionCodec> codecClass) {
     setCompressMapOutput(true);
     setClass(JobContext.MAP_OUTPUT_COMPRESS_CODEC, codecClass,
-        CompressionCodec.class);
+             CompressionCodec.class);
   }
   
   /**
@@ -1755,7 +1755,7 @@ public class JobConf extends Configuration {
    */
   public IntegerRanges getProfileTaskRange(boolean isMap) {
     return getRange((isMap ? JobContext.NUM_MAP_PROFILES :
-        JobContext.NUM_REDUCE_PROFILES), "0-2");
+                       JobContext.NUM_REDUCE_PROFILES), "0-2");
   }
 
   /**

@@ -99,7 +99,7 @@ class YarnChild {
 
     boolean isWorkPreserving = job.getWorkPreserving();
 
-
+    LOG.info("SS_DEBUG: Work Preserving:" + isWorkPreserving);
     LOG.info("SS_DEBUG: YarnChild: Host: " + host + " Port: " + port);
     final InetSocketAddress address =
         NetUtils.createSocketAddrForHost(host, port);
@@ -109,6 +109,7 @@ class YarnChild {
         firstTaskid.getTaskType() == TaskType.MAP, jvmIdLong);
 
     // If it is work preserving, retrieve the registry path
+    // If the job is not work preserving, we will not have any reason to use the registry service
     if (isWorkPreserving) {
       registryOperations = RegistryOperationsFactory.createInstance("YarnRegistry", job);
       registryOperations.start();
@@ -139,6 +140,9 @@ class YarnChild {
 
     TaskUmbilicalProtocol umbilical = null;
 
+    // If it is work preserving, we will use an umbilical with retries using a failover proxy to contact 
+    // the new AM
+    // If it is not work preserving, then we will use the regular umbilical 
     if (isWorkPreserving) {
       umbilical = UmbilicalFactory.getUmbilical(taskOwner, address, registryOperations, registryPath, job);
     } else {

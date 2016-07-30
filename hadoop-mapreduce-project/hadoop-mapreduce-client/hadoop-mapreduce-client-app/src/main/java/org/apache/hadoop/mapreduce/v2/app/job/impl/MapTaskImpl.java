@@ -68,7 +68,8 @@ public class MapTaskImpl extends TaskImpl {
         registryEntry, jobToken, credentials, clock, appContext);
   }
 
-   @Override
+  // Given an attempt Id, recreate the map attempt
+  @Override
   protected TaskAttemptImpl createAttempt(TaskAttemptId attemptId) {
 
     TaskId taskId = attemptId.getTaskId();

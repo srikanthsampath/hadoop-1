@@ -587,6 +587,7 @@ public abstract class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   protected abstract TaskAttemptImpl createAttempt();
 
+  // Given an attemptId, recreate an attempt
   protected abstract TaskAttemptImpl createAttempt(TaskAttemptId attemptId);
 
 
@@ -805,9 +806,7 @@ public abstract class TaskImpl implements Task, EventHandler<TaskEvent> {
     LOG.info("SS_DEBUG: Recovering inflight task " + taskInfo.getTaskId()
         + " from prior app attempt, status was " + taskInfo.getTaskStatus());
 
-    // Figure out what to do.
     // Have to consider multiple attempts
-    // Recovering completed tasks include sending of events - such as start and such
     //
     ArrayList<TaskAttemptInfo> taInfos =
         new ArrayList<TaskAttemptInfo>(taskInfo.getAllTaskAttempts().values());
@@ -819,7 +818,7 @@ public abstract class TaskImpl implements Task, EventHandler<TaskEvent> {
     TaskAttemptId attemptId = getTaskAttemptId(taskInfo);
     TaskAttemptImpl attempt = addAttempt(Avataar.VIRGIN, attemptId);
 
-    // handle the recovery inline so attempts complete before task does
+    // handle the recovery inline 
     attempt.handle(new TaskAttemptRecoverInflightEvent(attempt.getID(), taLast,
           committer, recoverTaskOutput));
 

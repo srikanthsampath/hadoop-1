@@ -904,12 +904,14 @@ public class RMAppImpl implements RMApp, Recoverable {
   private void
       createAndStartNewAttempt(boolean transferStateFromPreviousAttempt) {
     long latestContainerId = 0;
+    // Retrieve the last container id allocated
     if (currentAttempt != null) {
       LOG.info("Retrieving for attemptId:"+ currentAttempt.getAppAttemptId());
       latestContainerId = scheduler.getSchedulerAppInfo(currentAttempt.getAppAttemptId()).getLastContainerId();
     }
     LOG.info("SS_DEBUG:Trying to Set:" + "Container Id: " + latestContainerId);
     createNewAttempt();
+    // Include the last container id used in the previous attempt
     handler.handle(new RMAppStartAttemptEvent(currentAttempt.getAppAttemptId(),
       transferStateFromPreviousAttempt, latestContainerId));
   }

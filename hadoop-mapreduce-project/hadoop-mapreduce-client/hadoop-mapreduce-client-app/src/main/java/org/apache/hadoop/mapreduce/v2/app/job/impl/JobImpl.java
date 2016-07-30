@@ -727,12 +727,6 @@ public class JobImpl implements org.apache.hadoop.mapreduce.v2.app.job.Job,
     this.maxFetchFailuresNotifications = conf.getInt(
         MRJobConfig.MAX_FETCH_FAILURES_NOTIFICATIONS,
         MRJobConfig.DEFAULT_MAX_FETCH_FAILURES_NOTIFICATIONS);
-
-/* SS_FIXME: Config to keep containers running.  This exists already?
-    this.retainContainers = conf.getBoolean(
-        MRJobConfig.MR_AM_KEEP_CONTAINERS_ACROSS_ATTEMPTS,
-        MRJobConfig.MR_AM_KEEP_CONTAINERS_ACROSS_ATTEMPTS_DEFAULT);
-*/
   }
 
   protected StateMachine<JobStateInternal, JobEventType, JobEvent> getStateMachine() {
@@ -1015,7 +1009,7 @@ public class JobImpl implements org.apache.hadoop.mapreduce.v2.app.job.Job,
     for (TaskId taskID : taskIDs) {
       TaskInfo taskInfo = completedTasksFromPreviousRun.remove(taskID);
       TaskInfo inflightInfo = inflightTasksFromPreviousRun.remove(taskID);
-      // We need to add inflight tasks here
+      // Handle inflight tasks 
       if (taskInfo != null) {
         eventHandler.handle(new TaskRecoverEvent(taskID, taskInfo,
             committer, recoverTaskOutput));

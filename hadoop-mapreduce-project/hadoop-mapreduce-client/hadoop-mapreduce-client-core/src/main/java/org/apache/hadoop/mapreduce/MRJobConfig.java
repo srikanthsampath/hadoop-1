@@ -606,10 +606,6 @@ public interface MRJobConfig {
     MR_AM_PREFIX + "job.recovery.enable";
   public static final boolean MR_AM_JOB_RECOVERY_ENABLE_DEFAULT = true;
 
-  public static final String MR_AM_KEEP_CONTAINERS_ACROSS_ATTEMPTS =
-    MR_AM_PREFIX + "keep.containers.across.attempts";
-  public static final boolean MR_AM_KEEP_CONTAINERS_ACROSS_ATTEMPTS_DEFAULT = true;
-
 
   /** 
    * Limit on the number of reducers that can be preempted to ensure that at

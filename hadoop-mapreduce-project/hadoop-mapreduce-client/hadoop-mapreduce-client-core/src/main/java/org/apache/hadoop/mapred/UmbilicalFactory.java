@@ -1,7 +1,6 @@
 package org.apache.hadoop.mapred;
 
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.security.PrivilegedExceptionAction;
 
@@ -12,20 +11,8 @@ import org.apache.hadoop.io.retry.RetryPolicies;
 import org.apache.hadoop.io.retry.RetryPolicy;
 import org.apache.hadoop.io.retry.RetryProxy;
 import org.apache.hadoop.ipc.RPC;
-import org.apache.hadoop.net.NetUtils;
-import org.apache.hadoop.registry.client.types.ServiceRecord;
 import org.apache.hadoop.registry.client.api.RegistryOperations;
-import org.apache.hadoop.registry.client.binding.RegistryUtils;
-import org.apache.hadoop.registry.client.binding.RegistryTypeUtils;
-import org.apache.hadoop.registry.client.binding.RegistryPathUtils;
-import org.apache.hadoop.registry.client.api.RegistryOperationsFactory;
-
-import org.apache.hadoop.registry.client.types.Endpoint;
 import org.apache.hadoop.security.UserGroupInformation;
-
-
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 
 public class UmbilicalFactory {
@@ -45,7 +32,8 @@ public class UmbilicalFactory {
 
     return umbilicalNoRetry;
   }
- 
+
+  // Umbilical with Retries using a failover proxy
   public static TaskUmbilicalProtocol getUmbilical(UserGroupInformation taskOwner, InetSocketAddress address, 
                 RegistryOperations registryOperations, 
                 String path, final JobConf jobConf) throws Exception {
@@ -64,7 +52,7 @@ public class UmbilicalFactory {
 
 
     // Have a retry using a failover proxy 
-    // SS_FIX_ME: Make these configurable.  This is needed for exponential retry
+    // SS_FIXME: Make these configurable.  This is needed for exponential retry
     RetryPolicy retryPolicy = RetryPolicies.failoverOnNetworkException(RetryPolicies.TRY_ONCE_THEN_FAIL, 10,
             500, 15000);
     FailoverProxyProvider<TaskUmbilicalProtocol> failoverProxy = (FailoverProxyProvider)new MRAMFailoverProvider(TaskUmbilicalProtocol.class,

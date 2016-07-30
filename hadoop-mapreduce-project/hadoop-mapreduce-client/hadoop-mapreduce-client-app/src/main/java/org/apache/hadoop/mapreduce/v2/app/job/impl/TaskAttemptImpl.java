@@ -1270,7 +1270,7 @@ public abstract class TaskAttemptImpl implements
             + taInfo.getPort());
     LOG.info("SS_DEBUG: ContainerId:" + containerId);
     LOG.info("SS_DEBUG: ContainerNodeId:" + containerNodeId);
-    // SS_DEBUG: Hack without understanding to make it work.  figure out trackername/hostname/address/port/httpport/shuffleport
+    // SS_FIXME: Hack without understanding to make it work.  figure out trackername/hostname/address/port/httpport/shuffleport
     // Container instantiation uses something that is being used by TaskCompletionEvent
     String nodeHttpAddress = StringInterner.weakIntern(taInfo.getTrackerName() + ":"
             + taInfo.getShufflePort());
@@ -1284,13 +1284,12 @@ public abstract class TaskAttemptImpl implements
               taInfo.getContainerId().getContainerId());
     this.jvmID = jvmID;
     this.taskAttemptListener.registerPendingTask(remoteTask, jvmID);
-    taskAttemptListener.registerLaunchedTask(attemptId, jvmID);
+    this.taskAttemptListener.registerLaunchedTask(attemptId, jvmID);
     this.container = Container.newInstance(containerId, containerNodeId, nodeHttpAddress, null, null, null)
     ;
     LOG.info("SS_DEBUG: " + " AttemptId: " + attemptId + " JVMID: " + jvmID);
     LOG.info("SS_DEBUG: " + "*****End Recovering Inflight Task attempt " +
       " Attempt: " + taInfo.getAttemptId() + " Container: " + taInfo.getContainerId());
-    // SS_DEBUG Recover and bind to the container
   }
 
 

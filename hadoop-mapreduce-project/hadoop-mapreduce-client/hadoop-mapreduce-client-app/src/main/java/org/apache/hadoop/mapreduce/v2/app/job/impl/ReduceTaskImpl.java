@@ -67,6 +67,7 @@ public class ReduceTaskImpl extends TaskImpl {
   }
 
 
+  // Given an attempt Id, recreate the map attempt
   @Override
   protected TaskAttemptImpl createAttempt(TaskAttemptId attemptId) {
 

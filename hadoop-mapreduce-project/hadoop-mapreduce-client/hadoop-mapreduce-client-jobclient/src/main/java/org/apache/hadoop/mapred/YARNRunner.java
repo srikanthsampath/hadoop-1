@@ -541,7 +541,7 @@ public class YARNRunner implements ClientProtocol {
             MRJobConfig.DEFAULT_MR_AM_MAX_ATTEMPTS));
     appContext.setResource(capability);
 
-    appContext.setKeepContainersAcrossApplicationAttempts(conf.getBoolean(MRJobConfig.MR_AM_WORK_PRESERVE, 
+    appContext.setKeepContainersAcrossApplicationAttempts(conf.getBoolean(MRJobConfig.MR_AM_WORK_PRESERVE,
         MRJobConfig.DEFAULT_MR_AM_WORK_PRESERVE));
 
     // set labels for the AM container request if present

@@ -54,6 +54,7 @@ public class MRAMFailoverProvider<T> implements FailoverProxyProvider<T> {
     return new ProxyInfo<T>(currentlyActive, null);
   }
 
+  // Figure out the latest-greatest address given the registryPath
   private void setAddress() throws Exception {
     try {
       Map<String, ServiceRecord> recordMap = RegistryUtils.extractServiceRecords(registryOperations,
@@ -74,7 +75,7 @@ public class MRAMFailoverProvider<T> implements FailoverProxyProvider<T> {
 
           LOG.info("SS_DEBUG: New implementation: Host: " + host + " Port: " + port);
       } else {
-          // SS_FIX_ME: At times the entry can be null.  Is this during an update of the entry?
+          // SS_FIXME: At times the entry can be null.  Is this during an update of the entry?
           LOG.info("SS_DEBUG: Is this a bug?");
       }
 
@@ -101,6 +102,7 @@ public class MRAMFailoverProvider<T> implements FailoverProxyProvider<T> {
               TaskUmbilicalProtocol.versionID, addressFinal, jobConf);
         }
       });
+      // set the currently active proxy
       currentlyActive = (T)umbilicalNoRetry;
     } catch (Exception e){
       LOG.info("SS_DEBUG: Got an exception while performing failover" + e);
