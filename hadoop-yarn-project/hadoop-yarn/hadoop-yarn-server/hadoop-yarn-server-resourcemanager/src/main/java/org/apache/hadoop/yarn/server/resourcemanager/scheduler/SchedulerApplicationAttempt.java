@@ -159,21 +159,14 @@ public class SchedulerApplicationAttempt implements SchedulableEntity {
 
   private RMAppAttempt appAttempt;
 
-
-  public SchedulerApplicationAttempt(ApplicationAttemptId applicationAttemptId,
-                                     String user, Queue queue, ActiveUsersManager activeUsersManager,
-                                     RMContext rmContext) {
-    this(applicationAttemptId, user, queue, activeUsersManager, rmContext, 0);
-  }
-
   public SchedulerApplicationAttempt(ApplicationAttemptId applicationAttemptId, 
       String user, Queue queue, ActiveUsersManager activeUsersManager,
-      RMContext rmContext, long containerId) {
+      RMContext rmContext) {
     Preconditions.checkNotNull(rmContext, "RMContext should not be null");
     this.rmContext = rmContext;
     this.appSchedulingInfo = 
         new AppSchedulingInfo(applicationAttemptId, user, queue,  
-            activeUsersManager, rmContext.getEpoch(), attemptResourceUsage, containerId);
+            activeUsersManager, rmContext.getEpoch(), attemptResourceUsage);
     this.queue = queue;
     this.pendingRelease = new HashSet<ContainerId>();
     this.attemptId = applicationAttemptId;
@@ -223,10 +216,6 @@ public class SchedulerApplicationAttempt implements SchedulableEntity {
   
   public ApplicationId getApplicationId() {
     return appSchedulingInfo.getApplicationId();
-  }
-
-  public long getLastContainerId() {
-    return appSchedulingInfo.getLastContainerId();
   }
   
   public String getUser() {
@@ -746,8 +735,6 @@ public class SchedulerApplicationAttempt implements SchedulableEntity {
   public synchronized void transferStateFromPreviousAttempt(
       SchedulerApplicationAttempt appAttempt) {
     this.liveContainers = appAttempt.getLiveContainersMap();
-    LOG.info("SS_DEBUG: Transferring State and Containers from Previous attempt: Size: "+ this.liveContainers.size());
-
     // this.reReservations = appAttempt.reReservations;
     this.attemptResourceUsage.copyAllUsed(appAttempt.attemptResourceUsage);
     this.resourceLimit = appAttempt.getResourceLimit();

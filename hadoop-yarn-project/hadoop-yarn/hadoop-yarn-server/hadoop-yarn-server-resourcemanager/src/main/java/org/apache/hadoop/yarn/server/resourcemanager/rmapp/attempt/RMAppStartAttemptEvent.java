@@ -23,28 +23,14 @@ import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 public class RMAppStartAttemptEvent extends RMAppAttemptEvent {
 
   private final boolean transferStateFromPreviousAttempt;
-  
-  private long containerId;
-
 
   public RMAppStartAttemptEvent(ApplicationAttemptId appAttemptId,
       boolean transferStateFromPreviousAttempt) {
-    this(appAttemptId, transferStateFromPreviousAttempt, 0);
-  }
-
-  public RMAppStartAttemptEvent(ApplicationAttemptId appAttemptId,
-      boolean transferStateFromPreviousAttempt, long containerId) {
     super(appAttemptId, RMAppAttemptEventType.START);
     this.transferStateFromPreviousAttempt = transferStateFromPreviousAttempt;
-    this.containerId = containerId;
   }
 
   public boolean getTransferStateFromPreviousAttempt() {
     return transferStateFromPreviousAttempt;
   }
-
-  public long getContainerId() {
-    return containerId;
-  }
-
 }
