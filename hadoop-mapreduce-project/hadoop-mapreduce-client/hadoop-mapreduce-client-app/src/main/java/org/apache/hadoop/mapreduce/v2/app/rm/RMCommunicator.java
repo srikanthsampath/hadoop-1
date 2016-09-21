@@ -177,13 +177,12 @@ public abstract class RMCommunicator extends AbstractService
       job.setQueueName(queue);
       this.schedulerResourceTypes.addAll(response.getSchedulerResourceTypes());
 
-      //ork Preserving AM. Get the list of containers from previous attempts
+      //Work Preserving AM. Get the list of containers from previous attempts
       List<Container> previousContainers = response.getContainersFromPreviousAttempts();
 
-      LOG.info("SS_DEBUG: Previous Containers Begin");
+      LOG.info("Work Preserving AM: Inflight Containers");
       for (Container container: previousContainers)
           LOG.info("Container: " + container);
-      LOG.info("SS_DEBUG: Previous Containers End");
 
       //Work Preserving AM.  Get the list of NMTokens to communicate with
       //the NMs where the previous containers were running

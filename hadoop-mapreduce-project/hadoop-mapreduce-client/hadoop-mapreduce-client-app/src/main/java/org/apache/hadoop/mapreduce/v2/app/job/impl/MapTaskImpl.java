@@ -65,7 +65,7 @@ public class MapTaskImpl extends TaskImpl {
     return new MapTaskAttemptImpl(getID(), nextAttemptNumber,
         eventHandler, jobFile,
         partition, taskSplitMetaInfo, conf, taskAttemptListener,
-        registryEntry, jobToken, credentials, clock, appContext);
+        registryEntry, jobToken, credentials, clock, appAttemptId, appContext);
   }
 
   // Given an attempt Id, recreate the map attempt
@@ -78,7 +78,7 @@ public class MapTaskImpl extends TaskImpl {
     return new MapTaskAttemptImpl(taskId, attempt,
         eventHandler, jobFile,
         partition, taskSplitMetaInfo, conf, taskAttemptListener,
-        registryEntry, jobToken, credentials, clock, appContext);
+        registryEntry, jobToken, credentials, clock, appAttemptId, appContext);
   }
 
   @Override

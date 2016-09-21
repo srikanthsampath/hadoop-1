@@ -60,7 +60,7 @@ public class MRAMFailoverProvider<T> implements FailoverProxyProvider<T> {
       Map<String, ServiceRecord> recordMap = RegistryUtils.extractServiceRecords(registryOperations,
           RegistryPathUtils.parentOf(registryPath));
 
-      LOG.info("SS_DEBUG:Setting Address:RegistryPath:" + registryPath);
+      LOG.info("Setting Address:RegistryPath:" + registryPath);
       ServiceRecord listenerRecord = recordMap.get(registryPath);
 
       Endpoint endPoint = listenerRecord.getInternalEndpoint("org.apache.hadoop.mapreduce.v2");
@@ -72,22 +72,20 @@ public class MRAMFailoverProvider<T> implements FailoverProxyProvider<T> {
           int port = Integer.parseInt(hostPortMap.get("port"));
 
           address = NetUtils.createSocketAddrForHost(host, port);
-
-          LOG.info("SS_DEBUG: New implementation: Host: " + host + " Port: " + port);
+          LOG.info("Setting Address for registry path: " + registryPath + " Host: " + host + " Port: " + port);
       } else {
           // SS_FIXME: At times the entry can be null.  Is this during an update of the entry?
           LOG.info("SS_DEBUG: Is this a bug?");
       }
 
     } catch (Exception e) {
-      LOG.info("SS_DEBUG: Exception resetting umbilical.  Exception:"+ e);
+      LOG.info("Exception resetting umbilical.  Exception:"+ e);
       throw e;
     }
   }
 
   @Override
   public void performFailover(T currentProxy) {
-    LOG.info("SS_DEBUG Resetting Umbilical");
     TaskUmbilicalProtocol umbilicalNoRetry;
     try {
 
@@ -105,7 +103,7 @@ public class MRAMFailoverProvider<T> implements FailoverProxyProvider<T> {
       // set the currently active proxy
       currentlyActive = (T)umbilicalNoRetry;
     } catch (Exception e){
-      LOG.info("SS_DEBUG: Got an exception while performing failover" + e);
+      LOG.info("Got an exception while performing failover" + e);
     }
   }
 

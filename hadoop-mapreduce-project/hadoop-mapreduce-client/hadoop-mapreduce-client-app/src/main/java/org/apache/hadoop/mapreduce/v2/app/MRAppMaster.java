@@ -296,7 +296,7 @@ public class MRAppMaster extends CompositeService {
 
     isWorkPreserving = conf.getBoolean(MRJobConfig.MR_AM_WORK_PRESERVE, MRJobConfig.DEFAULT_MR_AM_WORK_PRESERVE);
 
-    LOG.info("SS_DEBUG: WorkPreserving: " + isWorkPreserving);
+    LOG.info("WorkPreserving: " + isWorkPreserving);
 
     conf.setBoolean(Dispatcher.DISPATCHER_EXIT_ON_ERROR_KEY, true);
 
@@ -517,7 +517,7 @@ public class MRAppMaster extends CompositeService {
       addIfService(registryOperations);
       LOG.info("Registry Opeeations Service started:" + registryOperations.toString());
     } else {
-      LOG.info("SS_DEBUG: No Registry Operations Service as Work Preserving is not Enabled");
+      LOG.info("No Registry Operations Service as Work Preserving is not enabled");
     }
 
 
@@ -1222,7 +1222,7 @@ public class MRAppMaster extends CompositeService {
     if (isWorkPreserving) {
       registryOperations.start();
       registryPath = initServiceRecord(jobId);
-      LOG.info("SS_DEBUG: Registry Path initialized " + registryPath);
+      LOG.info("Registry Path initialized " + registryPath);
     }
 
     // Current an AMInfo for the current AM generation.
@@ -1303,7 +1303,7 @@ public class MRAppMaster extends CompositeService {
     // Register the listener
     if (isWorkPreserving) {
       registryPath = registerListener(job, taskAttemptListener.getAddress());
-      LOG.info("SS_DEBUG: Registry Path for AM: " + registryPath + "Address:" + taskAttemptListener.getAddress());
+      LOG.info("Registry Path for AM: " + registryPath + "Address:" + taskAttemptListener.getAddress());
     }
 
     // finally set the job classloader
@@ -1401,6 +1401,7 @@ public class MRAppMaster extends CompositeService {
     JobHistoryParser parser = new JobHistoryParser(in);
     JobInfo jobInfo = parser.parse();
 
+    //SS_FIXME: To be removed
     System.out.println("SS_DEBUG: Recovery Information: BEGIN");
     jobInfo.printAll();
     System.out.println("SS_DEBUG: Recovery Information: END");
@@ -1438,7 +1439,7 @@ public class MRAppMaster extends CompositeService {
           if ((attemptInfo.getStartTime() != -1) && (attemptInfo.getFinishTime() == -1) &&
                                       (attemptInfo.getContainerId() != null)) {
               inflightTasksFromPreviousRun.put(TypeConverter.toYarn(taskInfo.getTaskId()), taskInfo);
-              LOG.info("SS_DEBUG: Inflight Task: " + TypeConverter.toYarn(taskInfo.getTaskId()) + 
+              LOG.info("Inflight Task: " + TypeConverter.toYarn(taskInfo.getTaskId()) + 
                                       " Container: " + attemptInfo.getContainerId());
               break;
           }
@@ -1448,7 +1449,7 @@ public class MRAppMaster extends CompositeService {
     LOG.info("Read completed tasks from history "
         + completedTasksFromPreviousRun.size());
 
-    LOG.info("SS_DEBUG: Read inflight tasks from history "
+    LOG.info("Read inflight tasks from history "
         + inflightTasksFromPreviousRun.size());
 
     recoveredJobStartTime = jobInfo.getLaunchTime();

@@ -34,8 +34,12 @@ import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 @SuppressWarnings("deprecation")
 public class MapReduceChildJVM {
+  private static final Log LOG = LogFactory.getLog(MapReduceChildJVM.class);
 
   private static String getTaskLogFile(LogName filter) {
     return ApplicationConstants.LOG_DIR_EXPANSION_VAR + Path.SEPARATOR + 
@@ -184,19 +188,23 @@ public class MapReduceChildJVM {
 
     // Finally add the jvmID
     vargs.add(String.valueOf(jvmID.getId()));
-    vargs.add("1>" + getTaskLogFile(TaskLog.LogName.STDOUT));
-    vargs.add("2>" + getTaskLogFile(TaskLog.LogName.STDERR));
+
+
+    vargs.add(String.valueOf(jvmID.getAttemptId()));
 
     // Pass the registry Path
     if (isWorkPreserving) {
       vargs.add(registryPath);
     }
+    vargs.add("1>" + getTaskLogFile(TaskLog.LogName.STDOUT));
+    vargs.add("2>" + getTaskLogFile(TaskLog.LogName.STDERR));
 
     // Final commmand
     StringBuilder mergedCommand = new StringBuilder();
     for (CharSequence str : vargs) {
       mergedCommand.append(str).append(" ");
     }
+    LOG.info("Command: "+ mergedCommand.toString());
     Vector<String> vargsFinal = new Vector<String>(1);
     vargsFinal.add(mergedCommand.toString());
     return vargsFinal;

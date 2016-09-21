@@ -122,7 +122,7 @@ public class TestTaskImpl {
 
       MockTaskAttemptImpl attemptImpl =  new MockTaskAttemptImpl(taskId, attempt,
           eventHandler, taskAttemptListener, remoteJobConfFile, partition,
-          conf, jobToken, credentials, clock, appContext, taskType);
+          conf, jobToken, credentials, clock, appContext, appAttemptId, taskType);
       taskAttempts.add(attemptImpl);
       return attemptImpl;
     }
@@ -136,7 +136,7 @@ public class TestTaskImpl {
     protected TaskAttemptImpl createAttempt() {
       MockTaskAttemptImpl attempt = new MockTaskAttemptImpl(getID(), ++taskAttemptCounter, 
           eventHandler, taskAttemptListener, remoteJobConfFile, partition,
-          conf, jobToken, credentials, clock, appContext, taskType);
+          conf, jobToken, credentials, clock, appContext, appAttemptId, taskType);
       taskAttempts.add(attempt);
       return attempt;
     }
@@ -166,9 +166,9 @@ public class TestTaskImpl {
         TaskAttemptListener taskAttemptListener, Path jobFile, int partition,
         JobConf conf, Token<JobTokenIdentifier> jobToken,
         Credentials credentials, Clock clock,
-        AppContext appContext, TaskType taskType) {
+        AppContext appContext, int appAttemptId, TaskType taskType) {
       super(taskId, id, eventHandler, taskAttemptListener, null, jobFile, partition, conf,
-          dataLocations, jobToken, credentials, clock, appContext);
+          dataLocations, jobToken, credentials, clock, appAttemptId, appContext);
       this.taskType = taskType;
     }
 
@@ -396,7 +396,6 @@ public class TestTaskImpl {
   private void assertTaskSucceededState() {
     assertEquals(TaskState.SUCCEEDED, mockTask.getState());
   }
-
   /**
    * {@link Avataar}
    */

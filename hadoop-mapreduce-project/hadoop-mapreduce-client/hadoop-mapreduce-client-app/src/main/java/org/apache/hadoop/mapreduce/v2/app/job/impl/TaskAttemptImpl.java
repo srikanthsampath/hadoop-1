@@ -629,6 +629,7 @@ public abstract class TaskAttemptImpl implements
   @VisibleForTesting
   public Container container;
   private String nodeRackName;
+  private int appAttemptId;
   private WrappedJvmID jvmID;
   
   //this takes good amount of memory ~ 30KB. Instantiate it lazily
@@ -646,7 +647,7 @@ public abstract class TaskAttemptImpl implements
       TaskAttemptListener taskAttemptListener, String registryPath, Path jobFile, int partition,
       JobConf conf, String[] dataLocalHosts,
       Token<JobTokenIdentifier> jobToken,
-      Credentials credentials, Clock clock,
+      Credentials credentials, Clock clock, int appAttemptId,
       AppContext appContext) {
     oldJobId = TypeConverter.fromYarn(taskId.getJobId());
     this.registryEntry = registryPath;
@@ -689,6 +690,7 @@ public abstract class TaskAttemptImpl implements
 
     locality = Locality.OFF_SWITCH;
     avataar = Avataar.VIRGIN;
+    this.appAttemptId = appAttemptId;
 
     // This "this leak" is okay because the retained pointer is in an
     //  instance variable.
@@ -1258,9 +1260,8 @@ public abstract class TaskAttemptImpl implements
   public void recoverInflight(TaskAttemptInfo taInfo,
       OutputCommitter committer, boolean recoverOutput) {
 
-    LOG.info("SS_DEBUG: " + "*****Begin Recovering Inflight Task attempt " +
-      " Attempt: " + taInfo.getAttemptId() + " Container: " + taInfo.getContainerId());
-    LOG.info("SS_DEBUG: TaskAttemptInfo:" + taInfo);
+    LOG.info("Recovering Inflight Task attempt" + taInfo.getAttemptId() + " Container: " + taInfo.getContainerId());
+    LOG.debug("TaskAttemptInfo:" + taInfo);
     this.launchTime = taInfo.getStartTime();
     this.trackerName = taInfo.getTrackerName();
     this.httpPort = taInfo.getHttpPort();
@@ -1268,28 +1269,23 @@ public abstract class TaskAttemptImpl implements
     ContainerId containerId = taInfo.getContainerId();
     NodeId containerNodeId = ConverterUtils.toNodeId(taInfo.getHostname() + ":"
             + taInfo.getPort());
-    LOG.info("SS_DEBUG: ContainerId:" + containerId);
-    LOG.info("SS_DEBUG: ContainerNodeId:" + containerNodeId);
     // SS_FIXME: Hack without understanding to make it work.  figure out trackername/hostname/address/port/httpport/shuffleport
     // Container instantiation uses something that is being used by TaskCompletionEvent
     String nodeHttpAddress = StringInterner.weakIntern(taInfo.getTrackerName() + ":"
             + taInfo.getShufflePort());
-    LOG.info("SS_DEBUG: Tracker: " + taInfo.getTrackerName() + "Shuffle Port:" + taInfo.getShufflePort());
-    LOG.info("SS_DEBUG: NodeHTTPAddress:" + nodeHttpAddress);
+    LOG.info("Tracker: " + taInfo.getTrackerName() + "Shuffle Port:" + taInfo.getShufflePort());
+    LOG.info("NodeHTTPAddress:" + nodeHttpAddress);
     this.remoteTask = createRemoteTask();
 
     WrappedJvmID jvmID =
           new WrappedJvmID((org.apache.hadoop.mapred.JobID)taInfo.getAttemptId().getJobID(),
               (taInfo.getTaskType()== org.apache.hadoop.mapreduce.TaskType.MAP),
-              taInfo.getContainerId().getContainerId());
+              taInfo.getContainerId().getContainerId(), taInfo.getAppAttemptId().getAttemptId());
     this.jvmID = jvmID;
     this.taskAttemptListener.registerPendingTask(remoteTask, jvmID);
     this.taskAttemptListener.registerLaunchedTask(attemptId, jvmID);
-    this.container = Container.newInstance(containerId, containerNodeId, nodeHttpAddress, null, null, null)
-    ;
-    LOG.info("SS_DEBUG: " + " AttemptId: " + attemptId + " JVMID: " + jvmID);
-    LOG.info("SS_DEBUG: " + "*****End Recovering Inflight Task attempt " +
-      " Attempt: " + taInfo.getAttemptId() + " Container: " + taInfo.getContainerId());
+    this.container = Container.newInstance(containerId, containerNodeId, nodeHttpAddress, null, null, null);
+    LOG.info("AttemptId: " + attemptId + " JVMID: " + jvmID);
   }
 
 
@@ -1744,7 +1740,8 @@ public abstract class TaskAttemptImpl implements
       taskAttempt.jvmID =
           new WrappedJvmID(taskAttempt.remoteTask.getTaskID().getJobID(),
               taskAttempt.remoteTask.isMapTask(),
-              taskAttempt.container.getId().getContainerId());
+              taskAttempt.container.getId().getContainerId(), taskAttempt.appAttemptId);
+      LOG.info("JVM ID Constructed: "+ taskAttempt.jvmID + " for attempt: " + taskAttempt.appAttemptId);
       taskAttempt.taskAttemptListener.registerPendingTask(
           taskAttempt.remoteTask, taskAttempt.jvmID);
 
@@ -1854,7 +1851,6 @@ public abstract class TaskAttemptImpl implements
           NetUtils.createSocketAddr(taskAttempt.container.getNodeHttpAddress());
       taskAttempt.trackerName = nodeHttpInetAddr.getHostName();
       taskAttempt.httpPort = nodeHttpInetAddr.getPort();
-      LOG.info("SS_DEBUG: LaunchedContainerTransition: Container launched:" + taskAttempt.container);
       taskAttempt.sendLaunchedEvents();
       taskAttempt.eventHandler.handle
           (new SpeculatorEvent

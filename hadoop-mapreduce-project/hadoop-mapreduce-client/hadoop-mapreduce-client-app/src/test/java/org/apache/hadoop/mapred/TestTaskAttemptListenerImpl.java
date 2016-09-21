@@ -114,8 +114,8 @@ public class TestTaskAttemptListenerImpl {
     Configuration conf = new Configuration();
     listener.init(conf);
     listener.start();
-    JVMId id = new JVMId("foo",1, true, 1);
-    WrappedJvmID wid = new WrappedJvmID(id.getJobId(), id.isMap, id.getId());
+    JVMId id = new JVMId("foo",1, true, 1, 1);
+    WrappedJvmID wid = new WrappedJvmID(id.getJobId(), id.isMap, id.getId(), id.getAttemptId());
 
     // Verify ask before registration.
     //The JVM ID has not been registered yet so we should kill it.
@@ -176,8 +176,8 @@ public class TestTaskAttemptListenerImpl {
   @Test (timeout=5000)
   public void testJVMId() {
 
-    JVMId jvmid = new JVMId("test", 1, true, 2);
-    JVMId jvmid1 = JVMId.forName("jvm_test_0001_m_000002");
+    JVMId jvmid = new JVMId("test", 1, true, 2, 1);
+    JVMId jvmid1 = JVMId.forName("jvm_test_0001_01_m_000002");
     // test compare methot should be the same
     assertEquals(0, jvmid.compareTo(jvmid1));
   }
@@ -410,8 +410,8 @@ public class TestTaskAttemptListenerImpl {
     Configuration conf = new Configuration();
     listener.init(conf);
     listener.start();
-    JVMId id = new JVMId("foo",1, true, 1);
-    WrappedJvmID wid = new WrappedJvmID(id.getJobId(), id.isMap, id.getId());
+    JVMId id = new JVMId("foo",1, true, 1, 1);
+    WrappedJvmID wid = new WrappedJvmID(id.getJobId(), id.isMap, id.getId(), id.getAttemptId());
 
     TaskAttemptID attemptID = new TaskAttemptID("1", 1, TaskType.MAP, 1, 1);
     TaskAttemptId attemptId = TypeConverter.toYarn(attemptID);

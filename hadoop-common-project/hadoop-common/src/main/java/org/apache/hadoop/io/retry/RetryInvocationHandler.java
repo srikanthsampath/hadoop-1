@@ -1,5 +1,4 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
+/* Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
  * regarding copyright ownership.  The ASF licenses this file
@@ -301,7 +300,6 @@ public class RetryInvocationHandler<T> implements RpcInvocationHandler {
     }
 
     if (isFailover) {
-      LOG.info("SS_DEBUG: Performing failover");
       proxyDescriptor.failover(expectedFailoverCount, method);
       counters.failovers++;
     }

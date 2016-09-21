@@ -339,6 +339,7 @@ public class JobHistoryParser implements HistoryEventHandler {
     attemptInfo.taskType = event.getTaskType();
     attemptInfo.shufflePort = event.getShufflePort();
     attemptInfo.containerId = event.getContainerId();
+    attemptInfo.appAttemptId = info.latestAmInfo.getAppAttemptId();
     
     taskInfo.attemptsMap.put(attemptId, attemptInfo);
   }
@@ -656,6 +657,8 @@ public class JobHistoryParser implements HistoryEventHandler {
     int port;
     String rackname;
     ContainerId containerId;
+    ApplicationAttemptId appAttemptId;
+
 
     /** Create a Task Attempt Info which will store attempt level information
      * on a history parse.
@@ -724,6 +727,7 @@ public class JobHistoryParser implements HistoryEventHandler {
     public int getShufflePort() { return shufflePort; }
     /** @return the ContainerId for the tracker */
     public ContainerId getContainerId() { return containerId; }
+    public ApplicationAttemptId getAppAttemptId() {return appAttemptId; }
   }
 
   /**

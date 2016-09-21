@@ -104,7 +104,7 @@ public class TestTaskAttemptContainerRequest {
         new MapTaskAttemptImpl(taskId, 1, eventHandler, jobFile, 1,
             mock(TaskSplitMetaInfo.class), jobConf, taListener,
             null, jobToken, credentials,
-            SystemClock.getInstance(), null);
+            SystemClock.getInstance(), 1, null);
 
     jobConf.set(MRJobConfig.APPLICATION_ATTEMPT_ID, taImpl.getID().toString());
 

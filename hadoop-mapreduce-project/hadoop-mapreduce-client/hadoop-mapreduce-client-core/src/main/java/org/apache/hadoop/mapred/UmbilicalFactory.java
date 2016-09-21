@@ -38,7 +38,7 @@ public class UmbilicalFactory {
                 RegistryOperations registryOperations, 
                 String path, final JobConf jobConf) throws Exception {
 
-    LOG.info("SS_DEBUG: Setting up Umbilical with Retries through a proxy");
+    LOG.info("Setting up Umbilical with Retries through a proxy");
 
     // Use the passed in address first.  
     final InetSocketAddress addressFinal = address;
@@ -55,10 +55,12 @@ public class UmbilicalFactory {
     // SS_FIXME: Make these configurable.  This is needed for exponential retry
     RetryPolicy retryPolicy = RetryPolicies.failoverOnNetworkException(RetryPolicies.TRY_ONCE_THEN_FAIL, 10,
             500, 15000);
-    FailoverProxyProvider<TaskUmbilicalProtocol> failoverProxy = (FailoverProxyProvider)new MRAMFailoverProvider(TaskUmbilicalProtocol.class,
+    FailoverProxyProvider<TaskUmbilicalProtocol> failoverProxy = (FailoverProxyProvider)
+                  new MRAMFailoverProvider(TaskUmbilicalProtocol.class,
                   umbilicalNoRetry, registryOperations, path, taskOwner, jobConf);
 
-    TaskUmbilicalProtocol umbilical = (TaskUmbilicalProtocol) RetryProxy.create(TaskUmbilicalProtocol.class, failoverProxy, retryPolicy);
+    TaskUmbilicalProtocol umbilical = (TaskUmbilicalProtocol) RetryProxy.create(TaskUmbilicalProtocol.class, 
+                  failoverProxy, retryPolicy);
 
     return umbilical;
   }

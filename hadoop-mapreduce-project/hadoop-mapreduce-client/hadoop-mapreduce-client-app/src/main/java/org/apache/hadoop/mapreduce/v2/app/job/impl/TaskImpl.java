@@ -278,6 +278,9 @@ public abstract class TaskImpl implements Task, EventHandler<TaskEvent> {
   // By default, the next TaskAttempt number is zero. Changes during recovery  
   protected int nextAttemptNumber = 0;
 
+  protected int appAttemptId = 0;
+
+
   // For sorting task attempts by completion time
   private static final Comparator<TaskAttemptInfo> TA_INFO_COMPARATOR =
       new Comparator<TaskAttemptInfo>() {
@@ -334,6 +337,8 @@ public abstract class TaskImpl implements Task, EventHandler<TaskEvent> {
     // This "this leak" is okay because the retained pointer is in an
     //  instance variable.
     stateMachine = stateMachineFactory.make(this);
+
+    this.appAttemptId = appAttemptId;
 
     // All the new TaskAttemptIDs are generated based on MR
     // ApplicationAttemptID so that attempts from previous lives don't
@@ -628,9 +633,7 @@ public abstract class TaskImpl implements Task, EventHandler<TaskEvent> {
   private TaskAttemptImpl addAttempt(Avataar avataar) {
     TaskAttemptImpl attempt = createAttempt();
     attempt.setAvataar(avataar);
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Created attempt " + attempt.getID());
-    }
+    LOG.info("Created attempt " + attempt.getID());
 
     addAttemptToAttempts(attempt);
 
@@ -803,7 +806,7 @@ public abstract class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   private void recoverInflight(TaskInfo taskInfo,
       OutputCommitter committer, boolean recoverTaskOutput) {
-    LOG.info("SS_DEBUG: Recovering inflight task " + taskInfo.getTaskId()
+    LOG.info("Recovering inflight task " + taskInfo.getTaskId()
         + " from prior app attempt, status was " + taskInfo.getTaskStatus());
 
     // Have to consider multiple attempts

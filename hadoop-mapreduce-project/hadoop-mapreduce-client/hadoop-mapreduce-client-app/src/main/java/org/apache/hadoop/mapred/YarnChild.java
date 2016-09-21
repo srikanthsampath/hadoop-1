@@ -92,21 +92,23 @@ class YarnChild {
 
     boolean isWorkPreserving = job.getWorkPreserving();
 
-    LOG.info("SS_DEBUG: Work Preserving:" + isWorkPreserving);
-    LOG.info("SS_DEBUG: YarnChild: Host: " + host + " Port: " + port);
+    LOG.info("Work Preserving:" + isWorkPreserving);
+    LOG.debug("MR AppMaster Host: " + host + " Port: " + port);
     final InetSocketAddress address =
         NetUtils.createSocketAddrForHost(host, port);
     final TaskAttemptID firstTaskid = TaskAttemptID.forName(args[2]);
     long jvmIdLong = Long.parseLong(args[3]);
+    final int attemptId =  Integer.parseInt(args[4]);
     JVMId jvmId = new JVMId(firstTaskid.getJobID(),
-        firstTaskid.getTaskType() == TaskType.MAP, jvmIdLong);
+        firstTaskid.getTaskType() == TaskType.MAP, jvmIdLong, attemptId);
+    LOG.info("JVM id for task: " + jvmId);
 
     // If it is work preserving, retrieve the registry path
     // If the job is not work preserving, we will not have any reason to use the registry service
     if (isWorkPreserving) {
       registryOperations = RegistryOperationsFactory.createInstance("YarnRegistry", job);
       registryOperations.start();
-      registryPath = args[4];
+      registryPath = args[5];
     }
 
     CallerContext.setCurrent(
@@ -163,7 +165,7 @@ class YarnChild {
         myTask = umbilical.getTask(context);
       }
       if (myTask.shouldDie()) {
-        LOG.info("SS_DEBUG: Should die is set for the Task.  Return");
+        LOG.debug("Should die is set for the Task.  Returning");
         return;
       }
 

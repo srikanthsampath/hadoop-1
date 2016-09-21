@@ -63,7 +63,7 @@ public class ReduceTaskImpl extends TaskImpl {
     return new ReduceTaskAttemptImpl(getID(), nextAttemptNumber,
         eventHandler, jobFile,
         partition, numMapTasks, conf, taskAttemptListener,
-        registryEntry, jobToken, credentials, clock, appContext);
+        registryEntry, jobToken, credentials, clock, appAttemptId, appContext);
   }
 
 
@@ -78,7 +78,7 @@ public class ReduceTaskImpl extends TaskImpl {
     return new ReduceTaskAttemptImpl(taskId, attempt,
         eventHandler, jobFile,
         partition, numMapTasks, conf, taskAttemptListener,
-        registryEntry, jobToken, credentials, clock, appContext);
+        registryEntry, jobToken, credentials, clock, appAttemptId, appContext);
   }
 
 
