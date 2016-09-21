@@ -1014,7 +1014,7 @@ public class JobImpl implements org.apache.hadoop.mapreduce.v2.app.job.Job,
         eventHandler.handle(new TaskRecoverEvent(taskID, taskInfo,
             committer, recoverTaskOutput));
       } else if (inflightInfo != null) {
-        LOG.info("SS_DEBUG: Handle inflight task: " + taskID);
+        LOG.info("Handling inflight task: " + taskID);
         eventHandler.handle(new TaskRecoverInflightEvent(taskID, inflightInfo,
             committer, recoverTaskOutput));
       } else {

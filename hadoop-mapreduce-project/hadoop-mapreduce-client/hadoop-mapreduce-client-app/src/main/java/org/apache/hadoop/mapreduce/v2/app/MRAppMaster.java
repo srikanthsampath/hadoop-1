@@ -1555,8 +1555,7 @@ public class MRAppMaster extends CompositeService {
       Task task = job.getTask(event.getTaskAttemptID().getTaskId());
       //SS_FIXME: Race conditions between spawning of tasks and recording in job history
       if (task == null) {
-        LOG.info("SS_DEBUG: Task is null");
-        LOG.info("SS_DEBUG: ID:for id:" + event.getTaskAttemptID().getTaskId());
+        LOG.info("SS_DEBUG: Task is null for id:" + event.getTaskAttemptID().getTaskId());
       }
       TaskAttempt attempt = task.getAttempt(event.getTaskAttemptID());
       ((EventHandler<TaskAttemptEvent>) attempt).handle(event);
