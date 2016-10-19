@@ -729,6 +729,10 @@ public interface MRJobConfig {
       MR_AM_PREFIX + "job.workpreserving";
   public static final boolean DEFAULT_MR_AM_WORK_PRESERVE = false;
 
+
+  public static final String WP_FAILOVER_PROVIDER = MR_AM_PREFIX + "wp.mr.failover";
+  public static final String DEFAULT_WP_FAILOVER_PROVIDER = "org.apache.hadoop.mapred.RegistryBasedFailoverProvider";
+
   /**
    * Duration to wait before forcibly preempting a reducer to allow
    * allocating new mappers, even when YARN reports positive headroom.

@@ -34,6 +34,7 @@ import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.IOUtils;
+import org.apache.hadoop.io.retry.FailoverProxyProvider;
 import org.apache.hadoop.ipc.CallerContext;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.mapreduce.MRConfig;
@@ -106,9 +107,13 @@ class YarnChild {
     // If it is work preserving, retrieve the registry path
     // If the job is not work preserving, we will not have any reason to use the registry service
     if (isWorkPreserving) {
-      registryOperations = RegistryOperationsFactory.createInstance("YarnRegistry", job);
-      registryOperations.start();
-      registryPath = args[5];
+      FailoverProxyProvider failoverProxy = UmbilicalFactory.getFailoverProvider(job);
+      LOG.info("FailoverProxyProvider: " + failoverProxy);
+      if (failoverProxy instanceof RegistryBasedFailoverProvider) {
+        registryOperations = RegistryOperationsFactory.createInstance("YarnRegistry", job);
+        registryOperations.start();
+        registryPath = args[5];
+      }
     }
 
     CallerContext.setCurrent(

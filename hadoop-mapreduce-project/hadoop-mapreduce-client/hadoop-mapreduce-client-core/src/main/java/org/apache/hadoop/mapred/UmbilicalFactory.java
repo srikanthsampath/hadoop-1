@@ -11,8 +11,10 @@ import org.apache.hadoop.io.retry.RetryPolicies;
 import org.apache.hadoop.io.retry.RetryPolicy;
 import org.apache.hadoop.io.retry.RetryProxy;
 import org.apache.hadoop.ipc.RPC;
+import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.registry.client.api.RegistryOperations;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.util.ReflectionUtils;
 
 
 public class UmbilicalFactory {
@@ -52,17 +54,38 @@ public class UmbilicalFactory {
 
 
     // Have a retry using a failover proxy 
+
+    FailoverProxyProvider failoverProxy = UmbilicalFactory.getFailoverProvider(jobConf);
+
+    if (failoverProxy instanceof RegistryBasedFailoverProvider) {
+      RegistryBasedFailoverProvider registryBasedProvider = (RegistryBasedFailoverProvider)failoverProxy;
+      registryBasedProvider.setRegistryOperations(registryOperations);
+      registryBasedProvider.setRegistryPath(path);
+      registryBasedProvider.setTaskOwner(taskOwner);
+      registryBasedProvider.setCurrentlyActive(umbilicalNoRetry);
+      registryBasedProvider.setIface(TaskUmbilicalProtocol.class);
+      registryBasedProvider.setJobConf(jobConf);
+    }
+
     // SS_FIXME: Make these configurable.  This is needed for exponential retry
     RetryPolicy retryPolicy = RetryPolicies.failoverOnNetworkException(RetryPolicies.TRY_ONCE_THEN_FAIL, 10,
             500, 15000);
-    FailoverProxyProvider<TaskUmbilicalProtocol> failoverProxy = (FailoverProxyProvider)
-                  new MRAMFailoverProvider(TaskUmbilicalProtocol.class,
-                  umbilicalNoRetry, registryOperations, path, taskOwner, jobConf);
+
+
 
     TaskUmbilicalProtocol umbilical = (TaskUmbilicalProtocol) RetryProxy.create(TaskUmbilicalProtocol.class, 
                   failoverProxy, retryPolicy);
 
     return umbilical;
+
+  }
+
+  public static FailoverProxyProvider getFailoverProvider(JobConf conf) {
+    Class<? extends FailoverProxyProvider> failoverClass =
+        conf.getClass(MRJobConfig.WP_FAILOVER_PROVIDER,
+            RegistryBasedFailoverProvider.class, FailoverProxyProvider.class);
+    LOG.info("Using Failover implementation - " + failoverClass);
+    return ReflectionUtils.newInstance(failoverClass, conf);
   }
 
 }

@@ -3,6 +3,8 @@ package org.apache.hadoop.mapred;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.retry.DefaultFailoverProxyProvider;
 import org.apache.hadoop.io.retry.FailoverProxyProvider;
 import org.apache.hadoop.ipc.RPC;
@@ -20,8 +22,8 @@ import java.net.InetSocketAddress;
 import java.security.PrivilegedExceptionAction;
 import java.util.Map;
 
-public class MRAMFailoverProvider<T> implements FailoverProxyProvider<T> {
-  private static final Log LOG = LogFactory.getLog(MRAMFailoverProvider.class);
+public class RegistryBasedFailoverProvider<T> extends Configured implements FailoverProxyProvider<T> {
+  private static final Log LOG = LogFactory.getLog(RegistryBasedFailoverProvider.class);
 
   private RegistryOperations registryOperations;
   private String registryPath;
@@ -31,17 +33,36 @@ public class MRAMFailoverProvider<T> implements FailoverProxyProvider<T> {
   private JobConf jobConf;
   private Class<T> iface;
 
-  /*
-  ** The first time set the proxy.  Failover kicks in only on failure
-  */
-  public MRAMFailoverProvider(Class<T> iface, T proxy, RegistryOperations registryOperations,
-                               String path, UserGroupInformation owner, JobConf conf) {
+  public RegistryBasedFailoverProvider() { }
+
+  @Override
+  public void setConf(Configuration config) {
+    super.setConf(config);
+    this.jobConf = ((JobConf)config);
+  }
+
+  public void setRegistryOperations(RegistryOperations registryOperations) {
     this.registryOperations = registryOperations;
-    this.registryPath = path;
+  }
+
+  public void setCurrentlyActive(T currentlyActive) {
+    this.currentlyActive = currentlyActive;
+  }
+
+  public void setRegistryPath(String registryPath) {
+    this.registryPath = registryPath;
+  }
+
+  public void setTaskOwner(UserGroupInformation taskOwner) {
+    this.taskOwner = taskOwner;
+  }
+
+  public void setIface(Class<T> iface) {
     this.iface = iface;
-    this.currentlyActive = proxy;
-    taskOwner = owner;
-    jobConf = conf;
+  }
+
+  public void setJobConf(JobConf jobConf) {
+    this.jobConf = jobConf;
   }
 
   @Override
@@ -103,7 +124,7 @@ public class MRAMFailoverProvider<T> implements FailoverProxyProvider<T> {
       // set the currently active proxy
       currentlyActive = (T)umbilicalNoRetry;
     } catch (Exception e){
-      LOG.info("Got an exception while performing failover" + e);
+      LOG.info("Exception while performing failover" + e);
     }
   }
 
