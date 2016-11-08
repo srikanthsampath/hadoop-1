@@ -6,6 +6,7 @@ import java.security.PrivilegedExceptionAction;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.retry.FailoverProxyProvider;
 import org.apache.hadoop.io.retry.RetryPolicies;
 import org.apache.hadoop.io.retry.RetryPolicy;
@@ -57,7 +58,7 @@ public class UmbilicalFactory {
 
     FailoverProxyProvider failoverProxy = UmbilicalFactory.getFailoverProvider(jobConf);
 
-    if (failoverProxy instanceof RegistryBasedFailoverProvider) {
+    if (failoverProxy instanceof RegistryBasedFailoverProvider<?>) {
       RegistryBasedFailoverProvider registryBasedProvider = (RegistryBasedFailoverProvider)failoverProxy;
       registryBasedProvider.setRegistryOperations(registryOperations);
       registryBasedProvider.setRegistryPath(path);
@@ -80,7 +81,7 @@ public class UmbilicalFactory {
 
   }
 
-  public static FailoverProxyProvider getFailoverProvider(JobConf conf) {
+  public static FailoverProxyProvider getFailoverProvider(Configuration conf) {
     Class<? extends FailoverProxyProvider> failoverClass =
         conf.getClass(MRJobConfig.WP_FAILOVER_PROVIDER,
             RegistryBasedFailoverProvider.class, FailoverProxyProvider.class);

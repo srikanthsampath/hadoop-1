@@ -45,13 +45,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.retry.FailoverProxyProvider;
 import org.apache.hadoop.ipc.CallerContext;
-import org.apache.hadoop.mapred.FileOutputCommitter;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.LocalContainerLauncher;
-import org.apache.hadoop.mapred.TaskAttemptListenerImpl;
-import org.apache.hadoop.mapred.TaskLog;
-import org.apache.hadoop.mapred.TaskUmbilicalProtocol;
+import org.apache.hadoop.mapred.*;
 import org.apache.hadoop.mapreduce.CryptoUtils;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.MRJobConfig;
@@ -229,6 +225,7 @@ public class MRAppMaster extends CompositeService {
   private AMPreemptionPolicy preemptionPolicy;
   private byte[] encryptedSpillKey;
   private boolean isWorkPreserving;
+  private FailoverProxyProvider failoverProxy = null;
 
   // After a task attempt completes from TaskUmbilicalProtocol's point of view,
   // it will be transitioned to finishing state.
@@ -513,11 +510,15 @@ public class MRAppMaster extends CompositeService {
 
     // Create Registry Operations Service if we have work preserving enabled
     if (isWorkPreserving) {
-      registryOperations = createRegistryOperationsService(conf);
-      addIfService(registryOperations);
-      LOG.info("Registry Opeeations Service started:" + registryOperations.toString());
+      failoverProxy = UmbilicalFactory.getFailoverProvider(conf);
+    
+      if (failoverProxy instanceof RegistryBasedFailoverProvider<?>) {
+          registryOperations = createRegistryOperationsService(conf);
+          addIfService(registryOperations);
+          LOG.info("Registry Opeeations Service started:" + registryOperations.toString());
+      }
     } else {
-      LOG.info("No Registry Operations Service as Work Preserving is not enabled");
+      LOG.info("Work Preserving is not enabled");
     }
 
 
@@ -1220,9 +1221,11 @@ public class MRAppMaster extends CompositeService {
 
     // Start Yarn Service Registry
     if (isWorkPreserving) {
-      registryOperations.start();
-      registryPath = initServiceRecord(jobId);
-      LOG.info("Registry Path initialized " + registryPath);
+      if (failoverProxy instanceof RegistryBasedFailoverProvider<?>) {
+        registryOperations.start();
+        registryPath = initServiceRecord(jobId);
+        LOG.info("Registry Path initialized " + registryPath);
+      }
     }
 
     // Current an AMInfo for the current AM generation.
@@ -1235,7 +1238,9 @@ public class MRAppMaster extends CompositeService {
 
     // If the job is WorkPreserving set the registry path
     if (isWorkPreserving) {
-      ((JobImpl) job).setRegistryPath(registryPath);
+      if (failoverProxy instanceof RegistryBasedFailoverProvider<?>) {
+        ((JobImpl) job).setRegistryPath(registryPath);
+      }
     }
     // End of creating the job.
 
@@ -1302,8 +1307,10 @@ public class MRAppMaster extends CompositeService {
 
     // Register the listener
     if (isWorkPreserving) {
-      registryPath = registerListener(job, taskAttemptListener.getAddress());
-      LOG.info("Registry Path for AM: " + registryPath + "Address:" + taskAttemptListener.getAddress());
+      if (failoverProxy instanceof RegistryBasedFailoverProvider<?>) {
+        registryPath = registerListener(job, taskAttemptListener.getAddress());
+        LOG.info("Registry Path for AM: " + registryPath + "Address:" + taskAttemptListener.getAddress());
+      }
     }
 
     // finally set the job classloader
