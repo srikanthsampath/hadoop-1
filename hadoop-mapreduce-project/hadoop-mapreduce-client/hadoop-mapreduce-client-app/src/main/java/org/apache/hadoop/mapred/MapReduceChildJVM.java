@@ -186,10 +186,10 @@ public class MapReduceChildJVM {
     vargs.add(Integer.toString(taskAttemptListenerAddr.getPort())); 
     vargs.add(attemptID.toString());                      // pass task identifier
 
-    // Finally add the jvmID
+    // Finally add the jvmID - this is the integer (container id)
     vargs.add(String.valueOf(jvmID.getId()));
 
-
+    // Add the attempt id
     vargs.add(String.valueOf(jvmID.getAttemptId()));
 
     // Pass the registry Path
